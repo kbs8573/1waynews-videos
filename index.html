@@ -140,8 +140,9 @@
     .rl-badge {
       font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;
     }
-    .rl-video { background: rgba(59,130,246,.2); color: #60a5fa; }
-    .rl-short { background: rgba(239,68,68,.2);  color: #f87171; }
+    .rl-live  { background: rgba(220,38,38,.25);  color: #f87171; }
+    .rl-video { background: rgba(59,130,246,.2);  color: #60a5fa; }
+    .rl-short { background: rgba(251,146,60,.2);  color: #fb923c; }
 
     /* ── Rail (horizontal scroll) ── */
     .rail {
@@ -211,7 +212,8 @@
       position: absolute; font-size: 10px; font-weight: 800;
       padding: 2px 6px; border-radius: 4px; letter-spacing: .3px;
     }
-    .badge-new  { top: 6px; right: 6px;  background: #2563eb; color: #fff; }
+    .badge-new  { top: 6px; right: 6px;   background: #2563eb; color: #fff; }
+    .badge-live { top: 6px; left: 6px;   background: #dc2626; color: #fff; }
     .badge-when { bottom: 6px; left: 6px; background: rgba(0,0,0,.78); color: #fff; border-radius: 4px; }
 
     .play-wrap {
@@ -346,9 +348,13 @@ const LAZY_CAT   = 4;
 const LAZY_INIT  = 3;
 const LAZY_BATCH = 5;
 
-// lazy store: { video: [...], short: [...] }
-const lazyStore  = { video: [], short: [] };
-const lazyOffset = { video: 0, short: 0 };
+// lazy store: { live: [...], video: [...], short: [...] }
+const lazyStore  = { live: [], video: [], short: [] };
+const lazyOffset = { live: 0, video: 0, short: 0 };
+
+function isLiveVideo(v) {
+  return v.type === 'live' || /\[?LIVE\]?|라이브/i.test(v.title);
+}
 
 function getBucket(pub) {
   const today = new Date(); today.setHours(0,0,0,0);
@@ -457,19 +463,24 @@ function parseYtData(data) {
 
 // ── Render ────────────────────────────────────────────────
 function render(videos) {
-  const buckets = CATS.map(() => ({ videos: [], shorts: [] }));
+  const buckets = CATS.map(() => ({ lives: [], videos: [], shorts: [] }));
   videos.forEach(v => {
     const b = getBucket(v.publishedAt instanceof Date ? v.publishedAt : new Date(v.publishedAt));
-    (v.type === 'short' ? buckets[b].shorts : buckets[b].videos).push(v);
+    // LIVE takes priority over short/video
+    if (isLiveVideo(v))          buckets[b].lives.push(v);
+    else if (v.type === 'short') buckets[b].shorts.push(v);
+    else                         buckets[b].videos.push(v);
   });
 
-  const totals = buckets.map(b => b.videos.length + b.shorts.length);
+  const totals = buckets.map(b => b.lives.length + b.videos.length + b.shorts.length);
   setTxt('cnt-all', videos.length);
   totals.forEach((n, i) => setTxt(`cnt-${i}`, n));
 
   // Init lazy store
+  lazyStore.live   = buckets[LAZY_CAT].lives;
   lazyStore.video  = buckets[LAZY_CAT].videos;
   lazyStore.short  = buckets[LAZY_CAT].shorts;
+  lazyOffset.live  = 0;
   lazyOffset.video = 0;
   lazyOffset.short = 0;
 
@@ -477,8 +488,8 @@ function render(videos) {
   main.innerHTML = '';
 
   CATS.forEach((cat, i) => {
-    const { videos: vids, shorts } = buckets[i];
-    if (!vids.length && !shorts.length) return;
+    const { lives, videos: vids, shorts } = buckets[i];
+    if (!lives.length && !vids.length && !shorts.length) return;
 
     const sec = document.createElement('div');
     sec.className = `t-section ${cat.cls}`;
@@ -494,16 +505,21 @@ function render(videos) {
     sec.appendChild(head);
 
     if (i === LAZY_CAT) {
-      // Lazy: show first LAZY_INIT
-      if (lazyStore.video.length)
-        sec.appendChild(buildRail(lazyStore.video.slice(0, LAZY_INIT), 'video', i, true));
+      // Lazy: show first LAZY_INIT — order: 라이브 → Shorts → 동영상
+      if (lazyStore.live.length)
+        sec.appendChild(buildRail(lazyStore.live.slice(0, LAZY_INIT),  'live',  i, true));
       if (lazyStore.short.length)
         sec.appendChild(buildRail(lazyStore.short.slice(0, LAZY_INIT), 'short', i, true));
-      lazyOffset.video = Math.min(LAZY_INIT, lazyStore.video.length);
+      if (lazyStore.video.length)
+        sec.appendChild(buildRail(lazyStore.video.slice(0, LAZY_INIT), 'video', i, true));
+      lazyOffset.live  = Math.min(LAZY_INIT, lazyStore.live.length);
       lazyOffset.short = Math.min(LAZY_INIT, lazyStore.short.length);
+      lazyOffset.video = Math.min(LAZY_INIT, lazyStore.video.length);
     } else {
-      if (vids.length)   sec.appendChild(buildRail(vids,   'video', i, false));
+      // Order: 라이브 → Shorts → 동영상
+      if (lives.length)  sec.appendChild(buildRail(lives,  'live',  i, false));
       if (shorts.length) sec.appendChild(buildRail(shorts, 'short', i, false));
+      if (vids.length)   sec.appendChild(buildRail(vids,   'video', i, false));
     }
 
     const div = document.createElement('div');
@@ -521,8 +537,9 @@ function buildRail(items, type, catIdx, isLazy) {
   wrap.className = 'rail-wrap';
 
   const isShort = type === 'short';
-  const lbl     = isShort ? 'Shorts' : '동영상';
-  const badge   = isShort ? 'rl-short' : 'rl-video';
+  const isLive  = type === 'live';
+  const lbl     = isShort ? 'Shorts' : isLive ? '🔴 라이브' : '동영상';
+  const badge   = isShort ? 'rl-short' : isLive ? 'rl-live' : 'rl-video';
   const railId  = `rail-${type}-${catIdx}`;
 
   // Label row
@@ -625,8 +642,9 @@ function addLoadMoreCard(rail, type, arrR, isShort) {
 
 // ── Card HTML ────────────────────────────────────────────
 function cardHTML(v) {
-  const isShort = v.type === 'short';
-  const isNew   = (Date.now() - new Date(v.publishedAt)) < 6 * 3600_000;
+  const isLive  = isLiveVideo(v);
+  const isShort = !isLive && v.type === 'short';   // LIVE overrides short
+  const isNew   = !isLive && (Date.now() - new Date(v.publishedAt)) < 6 * 3600_000;
   const when    = v.timeText || relDate(new Date(v.publishedAt));
   const views   = v.views != null ? `👁 ${fmtN(v.views)}` : '';
 
@@ -636,7 +654,8 @@ function cardHTML(v) {
     <img src="${esc(v.thumb)}" alt="${esc(v.title)}" loading="lazy"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
     <div class="thumb-err">▶</div>
-    ${isNew ? '<span class="badge badge-new">NEW</span>' : ''}
+    ${isLive ? '<span class="badge badge-live">🔴 LIVE</span>' : ''}
+    ${isNew  ? '<span class="badge badge-new">NEW</span>' : ''}
     <span class="badge badge-when">${when}</span>
     <div class="play-wrap">
       <div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>

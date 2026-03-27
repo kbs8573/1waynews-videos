@@ -65,14 +65,16 @@ def fetch_rss(channel_id):
             pub_dt = datetime.fromisoformat(pub_str.replace('Z', '+00:00'))
         except Exception:
             pub_dt = NOW
+        title_rss = entry.findtext('atom:title', namespaces=NS) or ''
+        is_live_rss = bool(re.search(r'\[?LIVE\]?|라이브', title_rss, re.IGNORECASE))
         videos[vid] = {
             'id':          vid,
-            'title':       entry.findtext('atom:title', namespaces=NS) or '',
+            'title':       title_rss,
             'publishedAt': pub_dt.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'views':       views,
             'thumb':       f'https://i.ytimg.com/vi/{vid}/mqdefault.jpg',
             'url':         f'https://www.youtube.com/watch?v={vid}',
-            'type':        'video',
+            'type':        'live' if is_live_rss else 'video',
         }
     return videos
 
@@ -168,6 +170,20 @@ def scrape_videos_page(url):
         elif 'simpleText' in t:
             title = t['simpleText']
 
+        # Detect LIVE via thumbnailOverlays or badges
+        is_live = False
+        for overlay in vr.get('thumbnailOverlays', []):
+            if overlay.get('thumbnailOverlayTimeStatusRenderer', {}).get('style') == 'LIVE':
+                is_live = True
+                break
+        if not is_live:
+            for badge in vr.get('badges', []):
+                if badge.get('metadataBadgeRenderer', {}).get('style') == 'BADGE_STYLE_TYPE_LIVE_NOW':
+                    is_live = True
+                    break
+        if not is_live and re.search(r'\[?LIVE\]?|라이브', title, re.IGNORECASE):
+            is_live = True
+
         result[vid] = {
             'id':          vid,
             'title':       title,
@@ -175,7 +191,7 @@ def scrape_videos_page(url):
             'views':       views,
             'thumb':       f'https://i.ytimg.com/vi/{vid}/mqdefault.jpg',
             'url':         f'https://www.youtube.com/watch?v={vid}',
-            'type':        'video',
+            'type':        'live' if is_live else 'video',
         }
     return result
 
@@ -214,6 +230,9 @@ def main():
             merged[vid]['publishedAt'] = v['publishedAt']
             if v['views'] is not None:
                 merged[vid]['views'] = v['views']
+            # Preserve 'live' type if either source detected it
+            if v['type'] == 'live':
+                merged[vid]['type'] = 'live'
         else:
             merged[vid] = v
 
