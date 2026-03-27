@@ -4,277 +4,298 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="light dark" />
-  <title>1Way News 최근 영상</title>
+  <title>전한길 뉴스 최근 영상</title>
   <style>
     :root {
       color-scheme: light dark;
-
-      /* ── Dark (기본) ── */
       --bg:       #0d0d0d;
       --surface:  #1a1a1a;
       --surface2: #252525;
-      --border:   #303030;
+      --border:   #2e2e2e;
       --text:     #f0f0f0;
       --muted:    #888;
-      --header:   #111;
-      --card-title: #f0f0f0;
-      --spinner-track: #303030;
-      --err-bg:     rgba(239,68,68,.08);
-      --err-border: rgba(239,68,68,.3);
+      --header:   #0a0a0a;
+      --spinner-track: #2e2e2e;
 
-      /* category colors */
-      --c0-color: #34d399; --c0-bg: rgba(52,211,153,.1);  --c0-border: rgba(52,211,153,.25);
-      --c1-color: #60a5fa; --c1-bg: rgba(96,165,250,.1);  --c1-border: rgba(96,165,250,.25);
-      --c2-color: #f472b6; --c2-bg: rgba(244,114,182,.1); --c2-border: rgba(244,114,182,.25);
-      --c3-color: #fb923c; --c3-bg: rgba(251,146,60,.1);  --c3-border: rgba(251,146,60,.25);
-      --c4-color: #94a3b8; --c4-bg: rgba(148,163,184,.1); --c4-border: rgba(148,163,184,.25);
+      --c0: #34d399; --c0-bg: rgba(52,211,153,.1);  --c0-bd: rgba(52,211,153,.3);
+      --c1: #60a5fa; --c1-bg: rgba(96,165,250,.1);  --c1-bd: rgba(96,165,250,.3);
+      --c2: #f472b6; --c2-bg: rgba(244,114,182,.1); --c2-bd: rgba(244,114,182,.3);
+      --c3: #fb923c; --c3-bg: rgba(251,146,60,.1);  --c3-bd: rgba(251,146,60,.3);
+      --c4: #94a3b8; --c4-bg: rgba(148,163,184,.1); --c4-bd: rgba(148,163,184,.3);
 
-      --chip-all-bg: rgba(59,130,246,.15); --chip-all-color: #60a5fa;
+      --v-w: 258px;   /* video card width */
+      --s-w: 145px;   /* shorts card width */
     }
-
     @media (prefers-color-scheme: light) {
       :root {
-        --bg:       #f4f4f5;
-        --surface:  #ffffff;
-        --surface2: #f0f0f0;
-        --border:   #e4e4e7;
-        --text:     #111;
-        --muted:    #666;
-        --header:   #ffffff;
-        --card-title: #111;
-        --spinner-track: #e4e4e7;
-        --err-bg:     rgba(220,38,38,.06);
-        --err-border: rgba(220,38,38,.25);
-
-        --c0-color: #059669; --c0-bg: rgba(5,150,105,.08);   --c0-border: rgba(5,150,105,.25);
-        --c1-color: #2563eb; --c1-bg: rgba(37,99,235,.08);   --c1-border: rgba(37,99,235,.25);
-        --c2-color: #db2777; --c2-bg: rgba(219,39,119,.08);  --c2-border: rgba(219,39,119,.25);
-        --c3-color: #ea580c; --c3-bg: rgba(234,88,12,.08);   --c3-border: rgba(234,88,12,.25);
-        --c4-color: #475569; --c4-bg: rgba(71,85,105,.08);   --c4-border: rgba(71,85,105,.25);
-
-        --chip-all-bg: rgba(37,99,235,.1); --chip-all-color: #2563eb;
+        --bg: #f3f4f6; --surface: #fff; --surface2: #f0f0f0;
+        --border: #e5e7eb; --text: #111; --muted: #666; --header: #fff;
+        --spinner-track: #e5e7eb;
+        --c0:#059669;--c0-bg:rgba(5,150,105,.08);--c0-bd:rgba(5,150,105,.3);
+        --c1:#2563eb;--c1-bg:rgba(37,99,235,.08);--c1-bd:rgba(37,99,235,.3);
+        --c2:#db2777;--c2-bg:rgba(219,39,119,.08);--c2-bd:rgba(219,39,119,.3);
+        --c3:#ea580c;--c3-bg:rgba(234,88,12,.08);--c3-bd:rgba(234,88,12,.3);
+        --c4:#475569;--c4-bg:rgba(71,85,105,.08);--c4-bd:rgba(71,85,105,.3);
       }
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg);
-      color: var(--text);
+    body { background: var(--bg); color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
-    }
+      overflow-x: hidden; }
 
-    /* ── Header ── */
-    header {
-      background: var(--header);
-      border-bottom: 1px solid var(--border);
-      padding: 18px 28px;
-      display: flex; align-items: center; gap: 14px;
-      position: sticky; top: 0; z-index: 10;
+    /* ── Channel Banner ── */
+    .channel-banner {
+      width: 100%; background: #0a0d1a;
+      background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(30,58,138,.6) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 50%, rgba(127,29,29,.4) 0%, transparent 60%);
+      padding: 22px 24px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 2px solid #cc0000;
+      position: sticky; top: 0; z-index: 100;
     }
-    .avatar {
-      width: 46px; height: 46px; border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6, #6366f1);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 800; color: #fff; flex-shrink: 0;
+    .banner-left { display: flex; flex-direction: column; gap: 2px; }
+    .banner-be-honest {
+      font-size: 11px; font-weight: 700; letter-spacing: 3px;
+      color: #cc0000; text-transform: uppercase;
     }
-    header h1 { font-size: 19px; font-weight: 700; }
-    header p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
-    .hdr-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
-    .upd-time  { font-size: 12px; color: var(--muted); }
+    .banner-title {
+      font-size: 22px; font-weight: 900; letter-spacing: -0.5px;
+      color: #ffffff; line-height: 1.1;
+    }
+    .banner-title em { color: #ef4444; font-style: normal; }
+    .banner-fact {
+      font-size: 11px; font-weight: 600; letter-spacing: 2px;
+      color: rgba(255,255,255,.4); text-transform: uppercase; margin-top: 2px;
+    }
+    .banner-right { display: flex; align-items: center; gap: 10px; }
+    .upd-time { font-size: 11px; color: rgba(255,255,255,.35); }
     .btn-refresh {
-      background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text); padding: 7px 14px; border-radius: 8px;
-      cursor: pointer; font-size: 13px; display: flex; align-items: center; gap: 6px;
-      transition: background .2s, color .2s, border-color .2s;
+      background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.15);
+      color: rgba(255,255,255,.8); padding: 6px 12px; border-radius: 8px;
+      cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 6px;
+      transition: background .2s;
     }
-    .btn-refresh:hover { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+    .btn-refresh:hover { background: #cc0000; border-color: #cc0000; color: #fff; }
 
-    /* ── Main ── */
-    main { max-width: 1380px; margin: 0 auto; padding: 28px 20px; }
+    /* ── Sub-header info ── */
+    .sub-info {
+      background: var(--header); border-bottom: 1px solid var(--border);
+      padding: 8px 24px; display: flex; align-items: center; gap: 10px;
+    }
+    .sub-info span { font-size: 12px; color: var(--muted); }
 
-    /* ── Filter bar ── */
-    .filter-bar { display: flex; gap: 10px; margin-bottom: 32px; flex-wrap: wrap; }
+    /* ── Filter chips ── */
+    .filter-bar {
+      background: var(--header); border-bottom: 1px solid var(--border);
+      display: flex; gap: 8px; padding: 12px 24px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
     .chip {
-      padding: 8px 18px; border-radius: 100px;
-      font-size: 13px; font-weight: 600;
-      cursor: pointer; border: 2px solid transparent;
-      transition: all .15s; display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 100px; white-space: nowrap;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      border: 2px solid transparent; transition: all .15s;
+      display: flex; align-items: center; gap: 5px; flex-shrink: 0;
       user-select: none;
     }
-    .chip .cnt { background: rgba(255,255,255,.18); border-radius: 100px; padding: 1px 7px; font-size: 11px; }
+    .chip .cnt { background: rgba(255,255,255,.18); border-radius: 100px; padding: 1px 6px; font-size: 10px; }
     .chip.active { border-color: currentColor; }
-    .c-all { background: var(--chip-all-bg); color: var(--chip-all-color); }
-    .c-0   { background: var(--c0-bg); color: var(--c0-color); }
-    .c-1   { background: var(--c1-bg); color: var(--c1-color); }
-    .c-2   { background: var(--c2-bg); color: var(--c2-color); }
-    .c-3   { background: var(--c3-bg); color: var(--c3-color); }
-    .c-4   { background: var(--c4-bg); color: var(--c4-color); }
+    .c-all { background: rgba(239,68,68,.15); color: #f87171; }
+    .c-0{background:var(--c0-bg);color:var(--c0)}
+    .c-1{background:var(--c1-bg);color:var(--c1)}
+    .c-2{background:var(--c2-bg);color:var(--c2)}
+    .c-3{background:var(--c3-bg);color:var(--c3)}
+    .c-4{background:var(--c4-bg);color:var(--c4)}
 
-    /* ── Section ── */
-    .section { margin-bottom: 48px; }
-    .sec-head {
-      display: flex; align-items: center; gap: 12px;
-      padding: 14px 20px; border-radius: 12px; margin-bottom: 20px;
+    /* ── Main ── */
+    main { padding: 4px 0 60px; }
+
+    /* ── Time section ── */
+    .t-section { margin-bottom: 4px; }
+    .t-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 20px 24px 10px;
     }
-    .h-0 { background: var(--c0-bg); border: 1px solid var(--c0-border); }
-    .h-1 { background: var(--c1-bg); border: 1px solid var(--c1-border); }
-    .h-2 { background: var(--c2-bg); border: 1px solid var(--c2-border); }
-    .h-3 { background: var(--c3-bg); border: 1px solid var(--c3-border); }
-    .h-4 { background: var(--c4-bg); border: 1px solid var(--c4-border); }
+    .t-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .ts-0 .t-dot{background:var(--c0);box-shadow:0 0 7px var(--c0)}
+    .ts-1 .t-dot{background:var(--c1);box-shadow:0 0 7px var(--c1)}
+    .ts-2 .t-dot{background:var(--c2);box-shadow:0 0 7px var(--c2)}
+    .ts-3 .t-dot{background:var(--c3);box-shadow:0 0 7px var(--c3)}
+    .ts-4 .t-dot{background:var(--c4)}
+    .t-name { font-size: 17px; font-weight: 800; }
+    .ts-0 .t-name{color:var(--c0)} .ts-1 .t-name{color:var(--c1)}
+    .ts-2 .t-name{color:var(--c2)} .ts-3 .t-name{color:var(--c3)}
+    .ts-4 .t-name{color:var(--c4)}
+    .t-cnt { font-size: 12px; color: var(--muted); }
+    .t-divider { height: 1px; background: var(--border); margin: 8px 24px 0; opacity: .5; }
 
-    .sec-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .h-0 .sec-dot { background: var(--c0-color); box-shadow: 0 0 6px var(--c0-color); }
-    .h-1 .sec-dot { background: var(--c1-color); box-shadow: 0 0 6px var(--c1-color); }
-    .h-2 .sec-dot { background: var(--c2-color); box-shadow: 0 0 6px var(--c2-color); }
-    .h-3 .sec-dot { background: var(--c3-color); box-shadow: 0 0 6px var(--c3-color); }
-    .h-4 .sec-dot { background: var(--c4-color); }
+    /* ── Rail wrapper ── */
+    .rail-wrap { position: relative; margin-bottom: 2px; }
+    .rail-label {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 24px 6px; font-size: 12px; color: var(--muted);
+    }
+    .rl-badge {
+      font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 4px;
+    }
+    .rl-video { background: rgba(59,130,246,.2); color: #60a5fa; }
+    .rl-short { background: rgba(239,68,68,.2);  color: #f87171; }
 
-    .sec-name { font-size: 17px; font-weight: 800; }
-    .h-0 .sec-name { color: var(--c0-color); }
-    .h-1 .sec-name { color: var(--c1-color); }
-    .h-2 .sec-name { color: var(--c2-color); }
-    .h-3 .sec-name { color: var(--c3-color); }
-    .h-4 .sec-name { color: var(--c4-color); }
+    /* ── Rail (horizontal scroll) ── */
+    .rail {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 12px;
+      padding: 4px 24px 16px;
+      overflow-x: auto;
+      overflow-y: visible;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+      -webkit-overflow-scrolling: touch;
+    }
+    .rail::-webkit-scrollbar { height: 4px; }
+    .rail::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-    .sec-cnt { font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 100px; }
-    .h-0 .sec-cnt { background: var(--c0-bg); color: var(--c0-color); }
-    .h-1 .sec-cnt { background: var(--c1-bg); color: var(--c1-color); }
-    .h-2 .sec-cnt { background: var(--c2-bg); color: var(--c2-color); }
-    .h-3 .sec-cnt { background: var(--c3-bg); color: var(--c3-color); }
-    .h-4 .sec-cnt { background: var(--c4-bg); color: var(--c4-color); }
+    /* ── Arrow buttons ── */
+    .arr {
+      position: absolute;
+      top: 50%; transform: translateY(-50%);
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer; z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,.4);
+      transition: background .15s, opacity .2s;
+    }
+    .arr:hover { background: #ef4444; border-color: #ef4444; color: #fff; }
+    .arr.hidden { opacity: 0; pointer-events: none; }
+    .arr-l { left: 4px; }
+    .arr-r { right: 4px; }
+    .arr svg { width: 16px; height: 16px; }
 
-    .sec-desc { margin-left: auto; font-size: 12px; color: var(--muted); }
-
-    /* ── Grid ── */
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-
-    /* ── Card ── */
+    /* ── Cards ── */
     .card {
+      flex: 0 0 auto;
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 12px; overflow: hidden;
-      text-decoration: none; color: inherit; display: block;
-      transition: transform .2s, box-shadow .2s, border-color .2s;
+      border-radius: 10px; overflow: hidden;
+      text-decoration: none; color: inherit;
+      transition: transform .2s, box-shadow .2s;
     }
-    .card:hover { transform: translateY(-4px); box-shadow: 0 14px 40px rgba(0,0,0,.2); border-color: var(--muted); }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
 
-    /* Shorts card: narrower ratio */
-    .card.is-short .thumb { aspect-ratio: 9/16; max-height: 320px; }
+    .card-v { width: var(--v-w); }
+    .card-v .thumb { aspect-ratio: 16/9; }
+    .card-s { width: var(--s-w); }
+    .card-s .thumb { height: 240px; }
 
-    .thumb { position: relative; aspect-ratio: 16/9; background: var(--surface2); overflow: hidden; }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
-    .card:hover .thumb img { transform: scale(1.04); }
+    .thumb {
+      position: relative; background: var(--surface2); overflow: hidden;
+    }
+    .thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform .3s;
+    }
+    .card:hover .thumb img { transform: scale(1.05); }
     .thumb-err {
       position: absolute; inset: 0; display: none;
       align-items: center; justify-content: center;
-      background: var(--surface2); color: var(--border); font-size: 36px;
+      background: var(--surface2); color: var(--border); font-size: 26px;
     }
 
-    /* Badges */
     .badge {
-      position: absolute; top: 8px; left: 8px;
-      font-size: 10px; font-weight: 800; padding: 3px 7px; border-radius: 4px;
-      letter-spacing: .4px;
+      position: absolute; font-size: 10px; font-weight: 800;
+      padding: 2px 6px; border-radius: 4px; letter-spacing: .3px;
     }
-    .badge-shorts { background: #ff4444; color: #fff; }
-    .badge-new    { background: #3b82f6; color: #fff; left: auto; right: 8px; }
-
-    .badge-when {
-      position: absolute; bottom: 8px; left: 8px;
-      font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
-      background: rgba(0,0,0,.75); color: #fff;
-    }
+    .badge-new  { top: 6px; right: 6px;  background: #2563eb; color: #fff; }
+    .badge-when { bottom: 6px; left: 6px; background: rgba(0,0,0,.78); color: #fff; border-radius: 4px; }
 
     .play-wrap {
-      position: absolute; inset: 0; display: flex;
-      align-items: center; justify-content: center;
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
       transition: background .2s;
     }
-    .card:hover .play-wrap { background: rgba(0,0,0,.28); }
+    .card:hover .play-wrap { background: rgba(0,0,0,.25); }
     .play-btn {
-      width: 48px; height: 48px; background: rgba(255,255,255,.9); border-radius: 50%;
+      width: 38px; height: 38px; background: rgba(255,255,255,.88); border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       opacity: 0; transform: scale(.8); transition: all .2s;
     }
-    .play-btn svg { width: 18px; height: 18px; fill: #111; margin-left: 3px; }
+    .play-btn svg { width: 15px; height: 15px; fill: #111; margin-left: 3px; }
     .card:hover .play-btn { opacity: 1; transform: scale(1); }
 
-    .card-body { padding: 12px 14px 14px; }
+    .card-body { padding: 8px 10px 10px; }
     .card-title {
-      font-size: 13.5px; font-weight: 600; line-height: 1.45; color: var(--card-title);
+      font-size: 12.5px; font-weight: 600; line-height: 1.4; color: var(--text);
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      overflow: hidden; margin-bottom: 10px;
+      overflow: hidden; margin-bottom: 5px;
     }
-    .card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .card-views { font-size: 12px; color: var(--muted); }
-    .card-cat { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 100px; }
-    .cat-0 { background: var(--c0-bg); color: var(--c0-color); }
-    .cat-1 { background: var(--c1-bg); color: var(--c1-color); }
-    .cat-2 { background: var(--c2-bg); color: var(--c2-color); }
-    .cat-3 { background: var(--c3-bg); color: var(--c3-color); }
-    .cat-4 { background: var(--c4-bg); color: var(--c4-color); }
+    .card-views { font-size: 11px; color: var(--muted); }
+
+    /* ── Load-more (지난주 이상) ── */
+    .load-more-card {
+      flex: 0 0 auto; width: var(--v-w);
+      background: var(--surface2); border: 1px dashed var(--border);
+      border-radius: 10px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; color: var(--muted); text-decoration: none;
+      transition: border-color .2s, color .2s;
+      min-height: 160px;
+    }
+    .load-more-card.short-size { width: var(--s-w); min-height: 240px; }
+    .load-more-card:hover { border-color: #ef4444; color: #ef4444; }
+    .load-more-card svg { width: 28px; height: 28px; }
+    .load-more-card span { font-size: 12px; font-weight: 600; }
 
     /* ── States ── */
-    .empty { grid-column: 1/-1; padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
     #loading {
       display: flex; flex-direction: column; align-items: center;
-      justify-content: center; padding: 100px 24px; gap: 18px;
+      justify-content: center; padding: 100px 24px; gap: 16px;
     }
     .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid var(--spinner-track); border-top-color: #3b82f6;
+      width: 36px; height: 36px;
+      border: 3px solid var(--spinner-track); border-top-color: #ef4444;
       border-radius: 50%; animation: spin .75s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     #loading p { color: var(--muted); font-size: 14px; }
-    #loading small { color: var(--border); font-size: 12px; }
 
-    #err-box {
-      display: none;
-      background: var(--err-bg); border: 1px solid var(--err-border);
-      border-radius: 12px; padding: 24px; margin-bottom: 24px;
+    #err-msg {
+      display: none; margin: 24px; padding: 20px;
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.25);
+      border-radius: 10px; color: var(--muted); font-size: 13px;
     }
-    #err-box h3 { color: #ef4444; margin-bottom: 8px; font-size: 15px; }
-    #err-box p  { color: var(--muted); font-size: 13px; line-height: 1.6; }
-    .api-box { margin-top: 16px; padding: 14px; background: var(--surface2); border-radius: 8px; }
-    .api-box strong { font-size: 13px; display: block; margin-bottom: 4px; }
-    .api-box small  { color: var(--muted); font-size: 12px; }
-    .api-box small a { color: #60a5fa; }
-    .api-box input {
-      background: var(--bg); border: 1px solid var(--border);
-      color: var(--text); padding: 8px 12px; border-radius: 6px;
-      font-size: 13px; width: 100%; margin-top: 8px; font-family: monospace;
-    }
-    .api-btn {
-      margin-top: 8px; background: #3b82f6; color: #fff;
-      border: none; padding: 9px 16px; border-radius: 6px;
-      cursor: pointer; font-size: 13px; font-weight: 600; width: 100%;
-    }
-    .api-btn:hover { background: #2563eb; }
-
     #content { display: none; }
 
     @media (max-width: 600px) {
-      header { padding: 12px 16px; }
-      main   { padding: 18px 12px; }
-      .grid  { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .card.is-short .thumb { max-height: 220px; }
+      :root { --v-w: 210px; --s-w: 128px; }
+      .channel-banner { padding: 16px; }
+      .banner-title { font-size: 17px; }
+      .filter-bar, .rail { padding-left: 14px; padding-right: 14px; }
+      .t-head { padding: 16px 14px 8px; }
+      .rail-label { padding-left: 14px; }
+      .card-s .thumb { height: 200px; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="avatar">1W</div>
-  <div>
-    <h1>1Way News 최근 영상</h1>
-    <p id="sub-text">@1waynews-jhg · 불러오는 중…</p>
+<!-- ── Channel Banner ── -->
+<header class="channel-banner">
+  <div class="banner-left">
+    <span class="banner-be-honest">Be honest</span>
+    <div class="banner-title">전한길 뉴스 <em>fact first</em></div>
+    <span class="banner-fact">@1waynews-jhg</span>
   </div>
-  <div class="hdr-right">
+  <div class="banner-right">
     <span class="upd-time" id="upd-time"></span>
     <button class="btn-refresh" onclick="loadVideos()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="23 4 23 10 17 10"/>
-        <polyline points="1 20 1 14 7 14"/>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
       </svg>
       새로고침
@@ -282,342 +303,353 @@
   </div>
 </header>
 
-<main>
-  <div id="loading">
-    <div class="spinner"></div>
-    <p id="load-msg">영상 데이터 불러오는 중…</p>
-    <small id="load-detail"></small>
+<!-- ── Sub info + Filter ── -->
+<div id="content">
+  <div class="sub-info">
+    <span id="sub-text">불러오는 중…</span>
   </div>
-
-  <div id="err-box">
-    <h3>⚠️ 영상을 불러올 수 없습니다</h3>
-    <p id="err-detail">오류가 발생했습니다.</p>
-    <div class="api-box">
-      <strong>YouTube Data API v3 키 입력 (선택)</strong>
-      <small>
-        <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank">
-          Google Cloud Console
-        </a>에서 무료 발급 가능합니다.
-      </small>
-      <input type="text" id="key-input" placeholder="AIza…" />
-      <button class="api-btn" onclick="tryWithKey()">API 키로 불러오기</button>
-    </div>
+  <div class="filter-bar">
+    <div class="chip c-all active" onclick="setFilter(this,'all')">📺 전체 <span class="cnt" id="cnt-all">0</span></div>
+    <div class="chip c-0" onclick="setFilter(this,0)">🟢 오늘 <span class="cnt" id="cnt-0">0</span></div>
+    <div class="chip c-1" onclick="setFilter(this,1)">🔵 어제 <span class="cnt" id="cnt-1">0</span></div>
+    <div class="chip c-2" onclick="setFilter(this,2)">🌸 3일 전 <span class="cnt" id="cnt-2">0</span></div>
+    <div class="chip c-3" onclick="setFilter(this,3)">🟠 이번 주 <span class="cnt" id="cnt-3">0</span></div>
+    <div class="chip c-4" onclick="setFilter(this,4)">🗂 지난주 이상 <span class="cnt" id="cnt-4">0</span></div>
   </div>
+  <main id="main-content"></main>
+</div>
 
-  <div id="content">
-    <!-- Filter bar -->
-    <div class="filter-bar">
-      <div class="chip c-all active" onclick="setFilter(this,'all')">📺 전체 <span class="cnt" id="cnt-all">0</span></div>
-      <div class="chip c-0" onclick="setFilter(this,'0')">🟢 오늘 <span class="cnt" id="cnt-0">0</span></div>
-      <div class="chip c-1" onclick="setFilter(this,'1')">🔵 어제 <span class="cnt" id="cnt-1">0</span></div>
-      <div class="chip c-2" onclick="setFilter(this,'2')">🌸 3일 전 <span class="cnt" id="cnt-2">0</span></div>
-      <div class="chip c-3" onclick="setFilter(this,'3')">🟠 이번 주 <span class="cnt" id="cnt-3">0</span></div>
-      <div class="chip c-4" onclick="setFilter(this,'4')">🗂 지난주 이상 <span class="cnt" id="cnt-4">0</span></div>
-    </div>
-
-    <!-- 오늘 -->
-    <div class="section" id="sec-0">
-      <div class="sec-head h-0">
-        <span class="sec-dot"></span>
-        <span class="sec-name">오늘</span>
-        <span class="sec-cnt" id="sc-0">0개</span>
-        <span class="sec-desc">오늘 업로드</span>
-      </div>
-      <div class="grid" id="grid-0"></div>
-    </div>
-
-    <!-- 어제 -->
-    <div class="section" id="sec-1">
-      <div class="sec-head h-1">
-        <span class="sec-dot"></span>
-        <span class="sec-name">어제</span>
-        <span class="sec-cnt" id="sc-1">0개</span>
-        <span class="sec-desc">어제 업로드</span>
-      </div>
-      <div class="grid" id="grid-1"></div>
-    </div>
-
-    <!-- 3일 전 -->
-    <div class="section" id="sec-2">
-      <div class="sec-head h-2">
-        <span class="sec-dot"></span>
-        <span class="sec-name">3일 전</span>
-        <span class="sec-cnt" id="sc-2">0개</span>
-        <span class="sec-desc">2~3일 전 업로드</span>
-      </div>
-      <div class="grid" id="grid-2"></div>
-    </div>
-
-    <!-- 이번 주 -->
-    <div class="section" id="sec-3">
-      <div class="sec-head h-3">
-        <span class="sec-dot"></span>
-        <span class="sec-name">이번 주 (3일 이상)</span>
-        <span class="sec-cnt" id="sc-3">0개</span>
-        <span class="sec-desc">4~7일 전 업로드</span>
-      </div>
-      <div class="grid" id="grid-3"></div>
-    </div>
-
-    <!-- 지난주 이상 -->
-    <div class="section" id="sec-4">
-      <div class="sec-head h-4">
-        <span class="sec-dot"></span>
-        <span class="sec-name">지난주 이상</span>
-        <span class="sec-cnt" id="sc-4">0개</span>
-        <span class="sec-desc">7일 이전 업로드</span>
-      </div>
-      <div class="grid" id="grid-4"></div>
-    </div>
-  </div>
-</main>
+<div id="loading">
+  <div class="spinner"></div>
+  <p>영상 데이터 불러오는 중…</p>
+</div>
+<div id="err-msg">영상 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>
 
 <script>
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Config
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const YT_CHANNEL_URL = 'https://www.youtube.com/@1waynews-jhg/videos';
-const CORS_PROXIES = [
+const YT_URL = 'https://www.youtube.com/@1waynews-jhg/videos';
+const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
   u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
   u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
 ];
 
-let savedKey = localStorage.getItem('yt_api_key_1way') || '';
+const CATS = [
+  { id:0, label:'오늘',        desc:'오늘 업로드',    cls:'ts-0' },
+  { id:1, label:'어제',        desc:'어제 업로드',     cls:'ts-1' },
+  { id:2, label:'3일 전',      desc:'2~3일 전 업로드', cls:'ts-2' },
+  { id:3, label:'이번 주',     desc:'4~7일 전 업로드', cls:'ts-3' },
+  { id:4, label:'지난주 이상', desc:'7일 이전 업로드',  cls:'ts-4' },
+];
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Date buckets (calendar-day based)
-// 0: 오늘  1: 어제  2: 3일전(2~3일)  3: 이번주(4~7일)  4: 지난주이상
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 지난주 이상: 처음 3개만, 이후 lazy load
+const LAZY_CAT   = 4;
+const LAZY_INIT  = 3;
+const LAZY_BATCH = 5;
+
+// lazy store: { video: [...], short: [...] }
+const lazyStore  = { video: [], short: [] };
+const lazyOffset = { video: 0, short: 0 };
+
 function getBucket(pub) {
-  const now   = new Date();
-  const today = new Date(now); today.setHours(0,0,0,0);
-  const d = ms => new Date(today - ms * 86400_000);
-
-  if (pub >= today)   return 0;
-  if (pub >= d(1))    return 1;
-  if (pub >= d(3))    return 2;
-  if (pub >= d(7))    return 3;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const ago = n => new Date(+today - n * 86400_000);
+  if (pub >= today)  return 0;
+  if (pub >= ago(1)) return 1;
+  if (pub >= ago(3)) return 2;
+  if (pub >= ago(7)) return 3;
   return 4;
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Main
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── Load ─────────────────────────────────────────────────
 async function loadVideos() {
   show('loading', true);
-  show('err-box', false);
   show('content', false);
-  setTxt('load-msg', '영상 데이터 불러오는 중…');
-  setTxt('load-detail', '');
+  show('err-msg', false);
 
-  // 1. data.json (same origin — always works)
   const fromJson = await fetchDataJson();
   if (fromJson?.videos?.length) {
     show('loading', false);
     render(fromJson.videos);
-    setTxt('sub-text', `@1waynews-jhg · 영상 ${fromJson.videos.length}개`);
-    setUpdTime(new Date().toISOString());
+    setTxt('sub-text', `영상 ${fromJson.videos.length}개`);
+    setTxt('upd-time', fmtTime(new Date()));
     return;
   }
-
-  // 2. Fallback: CORS proxy scraping
-  const videos = await fetchFresh();
+  const fresh = await scrapeYouTubePage();
   show('loading', false);
-
-  if (videos?.length) {
-    render(videos);
-    setTxt('sub-text', `@1waynews-jhg · 영상 ${videos.length}개`);
-    setUpdTime(new Date().toISOString());
+  if (fresh?.length) {
+    render(fresh);
+    setTxt('sub-text', `영상 ${fresh.length}개`);
+    setTxt('upd-time', fmtTime(new Date()));
   } else {
-    showErr('영상 데이터를 가져오지 못했습니다. 잠시 후 새로고침해 주세요.');
+    show('err-msg', true);
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// data.json (same origin)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function fetchDataJson() {
   try {
     const r = await fetch('./data.json', { signal: AbortSignal.timeout(5000) });
     if (!r.ok) return null;
-    const data = await r.json();
-    if (!data.videos?.length) return null;
-    data.videos = data.videos.map(v => ({ ...v, publishedAt: new Date(v.publishedAt), dur: null }));
-    return data;
-  } catch(e) { return null; }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Fallback: scrape YouTube page
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function fetchFresh() {
-  if (savedKey) {
-    const v = await fetchYouTubeAPI(savedKey);
-    if (v) return v;
-  }
-  return scrapeYouTubePage();
+    const d = await r.json();
+    if (!d.videos?.length) return null;
+    d.videos = d.videos.map(v => ({ ...v, publishedAt: new Date(v.publishedAt) }));
+    return d;
+  } catch { return null; }
 }
 
 async function scrapeYouTubePage() {
-  const html = await raceProxies(YT_CHANNEL_URL);
+  const html = await raceProxies(YT_URL);
   if (!html) return null;
   try {
-    const startIdx = html.indexOf('var ytInitialData = ');
-    if (startIdx === -1) return null;
-    const jsonStart = html.indexOf('{', startIdx);
-    let depth = 0, i = jsonStart;
+    const idx = html.indexOf('var ytInitialData = ');
+    if (idx < 0) return null;
+    const s = html.indexOf('{', idx);
+    let d = 0, i = s;
     for (; i < html.length; i++) {
-      if (html[i] === '{') depth++;
-      else if (html[i] === '}') { depth--; if (depth === 0) break; }
+      if (html[i] === '{') d++;
+      else if (html[i] === '}') { d--; if (!d) break; }
     }
-    const data = JSON.parse(html.slice(jsonStart, i + 1));
-    return parseYtInitialData(data);
-  } catch(e) { return null; }
+    return parseYtData(JSON.parse(html.slice(s, i + 1)));
+  } catch { return null; }
 }
 
-async function raceProxies(targetUrl) {
-  return new Promise(resolve => {
-    let done = false, pending = CORS_PROXIES.length;
-    CORS_PROXIES.forEach(mkProxy => {
-      fetch(mkProxy(targetUrl), { signal: AbortSignal.timeout(14000) })
+async function raceProxies(url) {
+  return new Promise(res => {
+    let done = false, pending = PROXIES.length;
+    PROXIES.forEach(mk => {
+      fetch(mk(url), { signal: AbortSignal.timeout(14000) })
         .then(async r => {
-          if (!r.ok) throw new Error();
-          const text = await r.text();
-          if (!text.includes('ytInitialData')) throw new Error();
-          if (!done) { done = true; resolve(text); }
+          const t = await r.text();
+          if (!t.includes('ytInitialData')) throw 0;
+          if (!done) { done = true; res(t); }
         })
-        .catch(() => { pending--; if (pending === 0 && !done) resolve(null); });
+        .catch(() => { if (--pending === 0 && !done) res(null); });
     });
   });
 }
 
-function parseYtInitialData(data) {
-  try {
-    const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs ?? [];
-    let items = null;
-    for (const tab of tabs) {
-      const content = tab.tabRenderer?.content;
-      if (!content) continue;
-      const grid = content.richGridRenderer?.contents
-        ?? content.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.gridRenderer?.items;
-      if (grid?.length) { items = grid; break; }
-    }
-    if (!items) items = findVideoRenderers(data);
-    if (!items?.length) return null;
-
-    const now = new Date();
-    return items.map(item => {
-      const vr = item.richItemRenderer?.content?.videoRenderer ?? item.gridVideoRenderer ?? item.videoRenderer;
-      if (!vr?.videoId) return null;
-      const vid = vr.videoId;
-      const timeText = vr.publishedTimeText?.simpleText ?? '';
-      return {
-        id: vid, title: vr.title?.runs?.[0]?.text ?? vr.title?.simpleText ?? '',
-        thumb: `https://i.ytimg.com/vi/${vid}/mqdefault.jpg`,
-        publishedAt: parseRelTime(timeText, now), timeText,
-        views: parseViews(vr.viewCountText?.simpleText ?? ''),
-        url: `https://www.youtube.com/watch?v=${vid}`,
-        type: 'video',
-      };
-    }).filter(Boolean);
-  } catch(e) { return null; }
-}
-
-function findVideoRenderers(obj, found = []) {
-  if (!obj || typeof obj !== 'object' || found.length >= 50) return found;
-  if (obj.videoRenderer || obj.gridVideoRenderer) {
-    found.push(obj.videoRenderer ? { videoRenderer: obj.videoRenderer } : { gridVideoRenderer: obj.gridVideoRenderer });
-    return found;
+function parseYtData(data) {
+  const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs ?? [];
+  let items = null;
+  for (const tab of tabs) {
+    const c = tab.tabRenderer?.content;
+    if (!c) continue;
+    const g = c.richGridRenderer?.contents
+      ?? c.sectionListRenderer?.contents?.[0]?.itemSectionRenderer?.contents?.[0]?.gridRenderer?.items;
+    if (g?.length) { items = g; break; }
   }
-  for (const k of Object.keys(obj)) findVideoRenderers(obj[k], found);
-  return found;
+  if (!items) return null;
+  const now = new Date();
+  return items.map(item => {
+    const vr = item.richItemRenderer?.content?.videoRenderer ?? item.gridVideoRenderer ?? item.videoRenderer;
+    if (!vr?.videoId) return null;
+    const id = vr.videoId;
+    const tt = vr.publishedTimeText?.simpleText ?? '';
+    return {
+      id, type: 'video',
+      title: vr.title?.runs?.[0]?.text ?? vr.title?.simpleText ?? '',
+      thumb: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+      publishedAt: parseRel(tt, now), timeText: tt,
+      views: parseViews(vr.viewCountText?.simpleText ?? ''),
+      url: `https://www.youtube.com/watch?v=${id}`,
+    };
+  }).filter(Boolean);
 }
 
-async function fetchYouTubeAPI(key) {
-  try {
-    const sr = await jf(`https://www.googleapis.com/youtube/v3/search?part=snippet&q=%401waynews-jhg&type=channel&maxResults=3&key=${key}`);
-    if (!sr?.items?.length) return null;
-    const channelId = sr.items[0].snippet.channelId;
-    const cd = await jf(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${key}`);
-    const uploadsId = cd.items[0].contentDetails.relatedPlaylists.uploads;
-    const pl = await jf(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${uploadsId}&maxResults=50&key=${key}`);
-    if (!pl?.items?.length) return null;
-    return pl.items.map(item => {
-      const vid = item.contentDetails.videoId;
-      return {
-        id: vid, title: item.snippet.title,
-        thumb: `https://i.ytimg.com/vi/${vid}/mqdefault.jpg`,
-        publishedAt: new Date(item.snippet.publishedAt),
-        views: null, url: `https://www.youtube.com/watch?v=${vid}`, type: 'video',
-      };
-    });
-  } catch(e) { return null; }
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Render
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const CAT_LABELS = ['오늘', '어제', '3일 전', '이번 주', '지난주 이상'];
-
+// ── Render ────────────────────────────────────────────────
 function render(videos) {
-  const buckets = [[], [], [], [], []];
-  videos.forEach(v => buckets[getBucket(v.publishedAt)].push(v));
+  const buckets = CATS.map(() => ({ videos: [], shorts: [] }));
+  videos.forEach(v => {
+    const b = getBucket(v.publishedAt instanceof Date ? v.publishedAt : new Date(v.publishedAt));
+    (v.type === 'short' ? buckets[b].shorts : buckets[b].videos).push(v);
+  });
 
-  const total = videos.length;
-  setTxt('cnt-all', total);
-  buckets.forEach((b, i) => {
-    setTxt(`cnt-${i}`, b.length);
-    setTxt(`sc-${i}`, `${b.length}개`);
-    fillGrid(`grid-${i}`, b, i);
+  const totals = buckets.map(b => b.videos.length + b.shorts.length);
+  setTxt('cnt-all', videos.length);
+  totals.forEach((n, i) => setTxt(`cnt-${i}`, n));
+
+  // Init lazy store
+  lazyStore.video  = buckets[LAZY_CAT].videos;
+  lazyStore.short  = buckets[LAZY_CAT].shorts;
+  lazyOffset.video = 0;
+  lazyOffset.short = 0;
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = '';
+
+  CATS.forEach((cat, i) => {
+    const { videos: vids, shorts } = buckets[i];
+    if (!vids.length && !shorts.length) return;
+
+    const sec = document.createElement('div');
+    sec.className = `t-section ${cat.cls}`;
+    sec.id = `sec-${i}`;
+
+    // Section header
+    const head = document.createElement('div');
+    head.className = 't-head';
+    head.innerHTML = `
+      <span class="t-dot"></span>
+      <span class="t-name">${cat.label}</span>
+      <span class="t-cnt">${totals[i]}개 · ${cat.desc}</span>`;
+    sec.appendChild(head);
+
+    if (i === LAZY_CAT) {
+      // Lazy: show first LAZY_INIT
+      if (lazyStore.video.length)
+        sec.appendChild(buildRail(lazyStore.video.slice(0, LAZY_INIT), 'video', i, true));
+      if (lazyStore.short.length)
+        sec.appendChild(buildRail(lazyStore.short.slice(0, LAZY_INIT), 'short', i, true));
+      lazyOffset.video = Math.min(LAZY_INIT, lazyStore.video.length);
+      lazyOffset.short = Math.min(LAZY_INIT, lazyStore.short.length);
+    } else {
+      if (vids.length)   sec.appendChild(buildRail(vids,   'video', i, false));
+      if (shorts.length) sec.appendChild(buildRail(shorts, 'short', i, false));
+    }
+
+    const div = document.createElement('div');
+    div.className = 't-divider';
+    sec.appendChild(div);
+    main.appendChild(sec);
   });
 
   show('content', true);
 }
 
-function fillGrid(id, videos, cat) {
-  const el = document.getElementById(id);
-  if (!videos.length) {
-    el.innerHTML = '<div class="empty">이 기간에 업로드된 영상이 없습니다</div>';
-    return;
-  }
-  el.innerHTML = videos.map(v => cardHTML(v, cat)).join('');
+// ── Build Rail ────────────────────────────────────────────
+function buildRail(items, type, catIdx, isLazy) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rail-wrap';
+
+  const isShort = type === 'short';
+  const lbl     = isShort ? 'Shorts' : '동영상';
+  const badge   = isShort ? 'rl-short' : 'rl-video';
+  const railId  = `rail-${type}-${catIdx}`;
+
+  // Label row
+  const labelDiv = document.createElement('div');
+  labelDiv.className = 'rail-label';
+  labelDiv.innerHTML = `<span class="rl-badge ${badge}">${lbl}</span>`;
+  wrap.appendChild(labelDiv);
+
+  // Arrow Left
+  const arrL = document.createElement('button');
+  arrL.className = 'arr arr-l hidden';
+  arrL.setAttribute('aria-label', '이전');
+  arrL.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>`;
+  wrap.appendChild(arrL);
+
+  // Rail
+  const rail = document.createElement('div');
+  rail.className = 'rail';
+  rail.id = railId;
+  items.forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
+  wrap.appendChild(rail);
+
+  // Arrow Right
+  const arrR = document.createElement('button');
+  arrR.className = 'arr arr-r';
+  arrR.setAttribute('aria-label', '다음');
+  arrR.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>`;
+  wrap.appendChild(arrR);
+
+  // Arrow click handlers
+  const cardW = isShort ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--s-w')) || 145
+                        : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--v-w')) || 258;
+
+  arrL.onclick = () => rail.scrollBy({ left: -(cardW + 12) * 3, behavior: 'smooth' });
+  arrR.onclick = () => rail.scrollBy({ left:  (cardW + 12) * 3, behavior: 'smooth' });
+
+  // Update arrow visibility on scroll
+  const updateArrows = () => {
+    const atStart = rail.scrollLeft <= 2;
+    const atEnd   = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+    arrL.classList.toggle('hidden', atStart);
+    arrR.classList.toggle('hidden', atEnd);
+
+    // Lazy load: fetch more when near the end
+    if (isLazy && atEnd) loadMoreLazy(type, rail, arrR, isShort);
+  };
+
+  rail.addEventListener('scroll', updateArrows, { passive: true });
+
+  // Initial arrow state (after layout)
+  requestAnimationFrame(() => updateArrows());
+
+  return wrap;
 }
 
-function cardHTML(v, cat) {
+// ── Lazy Load ────────────────────────────────────────────
+function loadMoreLazy(type, rail, arrR, isShort) {
+  const store  = lazyStore[type];
+  const offset = lazyOffset[type];
+  if (offset >= store.length) return;
+
+  const batch = store.slice(offset, offset + LAZY_BATCH);
+  if (!batch.length) return;
+
+  // Remove existing load-more placeholder if any
+  rail.querySelectorAll('.load-more-card').forEach(el => el.remove());
+
+  batch.forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
+  lazyOffset[type] += batch.length;
+
+  // If still more remaining, add a "더 보기" placeholder card at the end
+  if (lazyOffset[type] < store.length) {
+    addLoadMoreCard(rail, type, arrR, isShort);
+  }
+
+  // Re-check arrow state
+  requestAnimationFrame(() => {
+    const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+    arrR.classList.toggle('hidden', atEnd);
+  });
+}
+
+function addLoadMoreCard(rail, type, arrR, isShort) {
+  const remaining = lazyStore[type].length - lazyOffset[type];
+  const card = document.createElement('div');
+  card.className = `load-more-card${isShort ? ' short-size' : ''}`;
+  card.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="8 12 12 16 16 12"/>
+      <line x1="12" y1="8" x2="12" y2="16"/>
+    </svg>
+    <span>+${remaining}개 더 보기</span>`;
+  card.onclick = () => {
+    card.remove();
+    loadMoreLazy(type, rail, arrR, isShort);
+  };
+  rail.appendChild(card);
+}
+
+// ── Card HTML ────────────────────────────────────────────
+function cardHTML(v) {
   const isShort = v.type === 'short';
-  const isNew   = (new Date() - v.publishedAt) < 6 * 3600_000;
-  const when    = v.timeText || relDate(v.publishedAt);
-  const viewsTxt = v.views != null ? `👁 ${fmtN(v.views)}` : '';
-  const thumb = v.thumb || `https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`;
+  const isNew   = (Date.now() - new Date(v.publishedAt)) < 6 * 3600_000;
+  const when    = v.timeText || relDate(new Date(v.publishedAt));
+  const views   = v.views != null ? `👁 ${fmtN(v.views)}` : '';
 
   return `
-<a class="card${isShort ? ' is-short' : ''}" href="${esc(v.url)}" target="_blank" rel="noopener">
+<a class="card card-${isShort ? 's' : 'v'}" href="${esc(v.url)}" target="_blank" rel="noopener">
   <div class="thumb">
-    <img src="${esc(thumb)}" alt="${esc(v.title)}" loading="lazy"
-      onerror="this.src='https://i.ytimg.com/vi/${esc(v.id)}/mqdefault.jpg'"
-    />
+    <img src="${esc(v.thumb)}" alt="${esc(v.title)}" loading="lazy"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
     <div class="thumb-err">▶</div>
-    ${isShort ? '<span class="badge badge-shorts">Shorts</span>' : ''}
-    ${isNew   ? '<span class="badge badge-new">NEW</span>' : ''}
-    <span class="badge-when">${when}</span>
+    ${isNew ? '<span class="badge badge-new">NEW</span>' : ''}
+    <span class="badge badge-when">${when}</span>
     <div class="play-wrap">
       <div class="play-btn"><svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg></div>
     </div>
   </div>
   <div class="card-body">
     <div class="card-title">${esc(v.title)}</div>
-    <div class="card-meta">
-      <span class="card-views">${viewsTxt}</span>
-      <span class="card-cat cat-${cat}">${CAT_LABELS[cat]}</span>
-    </div>
+    <div class="card-views">${views}</div>
   </div>
 </a>`;
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Filter
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── Filter ───────────────────────────────────────────────
 function setFilter(el, f) {
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
@@ -625,58 +657,35 @@ function setFilter(el, f) {
   document.getElementById(`sec-${f}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function tryWithKey() {
-  const k = document.getElementById('key-input').value.trim();
-  if (!k) return;
-  savedKey = k;
-  localStorage.setItem('yt_api_key_1way', k);
-  loadVideos();
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Helpers
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── Helpers ──────────────────────────────────────────────
 function show(id, on) {
   const el = document.getElementById(id);
   if (el) el.style.display = on ? (id === 'loading' ? 'flex' : 'block') : 'none';
 }
 function setTxt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
-function showErr(msg) { show('err-box', true); setTxt('err-detail', msg); }
-function setUpdTime(iso) {
-  const d = new Date(iso);
-  setTxt('upd-time', `업데이트: ${d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`);
+function fmtTime(d) {
+  return `업데이트: ${d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
 }
-async function jf(url) {
-  const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  if (!r.ok) throw new Error(`${r.status}`);
-  return r.json();
-}
-function parseRelTime(t, now) {
+function parseRel(t, now) {
   if (!t) return new Date(now - 30 * 86400_000);
   const n = parseInt(t.match(/\d+/)?.[0] || '1');
-  if (/second|초/.test(t))  return new Date(now - n * 1000);
-  if (/minute|분/.test(t))  return new Date(now - n * 60000);
-  if (/hour|시간/.test(t))  return new Date(now - n * 3600000);
-  if (/day|일/.test(t))     return new Date(now - n * 86400000);
-  if (/week|주/.test(t))    return new Date(now - n * 7 * 86400000);
-  if (/month|개월/.test(t)) return new Date(now - n * 30 * 86400000);
-  if (/year|년/.test(t))    return new Date(now - n * 365 * 86400000);
-  return new Date(now - 30 * 86400_000);
+  if (/second|초/.test(t))  return new Date(now - n * 1e3);
+  if (/minute|분/.test(t))  return new Date(now - n * 6e4);
+  if (/hour|시간/.test(t))  return new Date(now - n * 36e5);
+  if (/day|일/.test(t))     return new Date(now - n * 864e5);
+  if (/week|주/.test(t))    return new Date(now - n * 7 * 864e5);
+  if (/month|개월/.test(t)) return new Date(now - n * 30 * 864e5);
+  if (/year|년/.test(t))    return new Date(now - n * 365 * 864e5);
+  return new Date(now - 30 * 864e5);
 }
 function relDate(d) {
-  const diff = Date.now() - d;
-  const mins = Math.floor(diff / 60000), hours = Math.floor(mins / 60), days = Math.floor(hours / 24);
-  if (mins < 60)  return `${mins}분 전`;
-  if (hours < 24) return `${hours}시간 전`;
-  if (days === 1) return '어제';
-  if (days < 7)   return `${days}일 전`;
-  return `${Math.floor(days / 7)}주 전`;
+  const s = (Date.now() - d) / 1000;
+  if (s < 3600)   return `${Math.floor(s/60)}분 전`;
+  if (s < 86400)  return `${Math.floor(s/3600)}시간 전`;
+  if (s < 172800) return '어제';
+  return `${Math.floor(s/86400)}일 전`;
 }
-function parseViews(t) {
-  if (!t) return null;
-  const m = t.replace(/,/g,'').match(/(\d+)/);
-  return m ? +m[1] : null;
-}
+function parseViews(t) { const m = t.replace(/,/g,'').match(/\d+/); return m ? +m[0] : null; }
 function fmtN(n) {
   if (n >= 10000) return `${Math.floor(n/10000)}만`;
   if (n >= 1000)  return `${(n/1000).toFixed(1)}천`;
@@ -686,7 +695,6 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// Init
 loadVideos();
 </script>
 </body>
