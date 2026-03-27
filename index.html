@@ -79,6 +79,13 @@
     }
     .btn-refresh:hover { background: #cc0000; border-color: #cc0000; color: #fff; }
 
+    /* ── Flag canvas bg ── */
+    #flag-bg {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      opacity: .13; pointer-events: none; z-index: 0;
+    }
+    .banner-left, .banner-right { position: relative; z-index: 1; }
+
     /* ── Sub-header info ── */
     .sub-info {
       background: var(--header); border-bottom: 1px solid var(--border);
@@ -288,9 +295,10 @@
 
 <!-- ── Channel Banner ── -->
 <header class="channel-banner">
+  <canvas id="flag-bg"></canvas>
   <div class="banner-left">
     <span class="banner-be-honest">Be honest</span>
-    <div class="banner-title">전한길 뉴스 <em>fact first</em></div>
+    <div class="banner-title">전한길 뉴스 <em>FACT FIRST</em></div>
     <span class="banner-fact">@1waynews-jhg</span>
   </div>
   <div class="banner-right">
@@ -715,6 +723,100 @@ function esc(s) {
 }
 
 loadVideos();
+
+// ── 태극기 펄럭임 배경 ────────────────────────────────────
+(function initFlag() {
+  const canvas = document.getElementById('flag-bg');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const DPR = window.devicePixelRatio || 1;
+
+  function resize() {
+    canvas.width  = canvas.offsetWidth  * DPR;
+    canvas.height = canvas.offsetHeight * DPR;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  /* ── Draw 태극기 to offscreen canvas ── */
+  const FW = 900, FH = 600;
+  const off = Object.assign(document.createElement('canvas'), { width: FW, height: FH });
+  const g   = off.getContext('2d');
+
+  // White background
+  g.fillStyle = '#fff';
+  g.fillRect(0, 0, FW, FH);
+
+  const cx = FW / 2, cy = FH / 2, R = FH * 0.27;
+
+  // ── Taeguk (태극) ──
+  g.save();
+  g.translate(cx, cy);
+  g.rotate(-Math.PI / 4);  // standard orientation
+
+  g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.clip();
+
+  // Blue upper half
+  g.fillStyle = '#003478';
+  g.beginPath(); g.arc(0, 0, R, Math.PI, 0, false); g.fill();
+  // Red lower half
+  g.fillStyle = '#CD2E3A';
+  g.beginPath(); g.arc(0, 0, R, 0, Math.PI, false); g.fill();
+  // S-curve small blue circle (top)
+  g.fillStyle = '#003478';
+  g.beginPath(); g.arc(0, -R / 2, R / 2, 0, Math.PI * 2); g.fill();
+  // S-curve small red circle (bottom)
+  g.fillStyle = '#CD2E3A';
+  g.beginPath(); g.arc(0,  R / 2, R / 2, 0, Math.PI * 2); g.fill();
+
+  g.restore();
+
+  // ── Trigrams (괘) ──
+  function drawGwae(gx, gy, lines, angle) {
+    const bW = R * 0.85, bH = R * 0.1, sp = R * 0.07;
+    g.save(); g.translate(gx, gy); g.rotate(angle);
+    g.fillStyle = '#111';
+    lines.forEach((solid, i) => {
+      const y = (i - 1) * (bH + sp);
+      if (solid) {
+        g.fillRect(-bW / 2, y - bH / 2, bW, bH);
+      } else {
+        g.fillRect(-bW / 2,           y - bH / 2, bW * 0.42, bH);
+        g.fillRect(-bW / 2 + bW * 0.58, y - bH / 2, bW * 0.42, bH);
+      }
+    });
+    g.restore();
+  }
+
+  const d = R * 1.55;
+  // 건(乾) ☰ top-left   — all solid
+  drawGwae(cx - d * 0.72, cy - d * 0.42, [1,1,1],  Math.PI * 0.25);
+  // 감(坎) ☵ top-right  — broken outer
+  drawGwae(cx + d * 0.72, cy - d * 0.42, [0,1,0], -Math.PI * 0.25);
+  // 이(離) ☲ bottom-left — broken middle
+  drawGwae(cx - d * 0.72, cy + d * 0.42, [1,0,1],  Math.PI * 0.75);
+  // 곤(坤) ☷ bottom-right— all broken
+  drawGwae(cx + d * 0.72, cy + d * 0.42, [0,0,0], -Math.PI * 0.75);
+
+  /* ── Wave animation ── */
+  let phase = 0;
+  function tick() {
+    const W = canvas.width, H = canvas.height;
+    ctx.clearRect(0, 0, W, H);
+
+    for (let x = 0; x < W; x++) {
+      const t       = x / W;                          // 0→1 left to right
+      const amp     = H * 0.09 * t;                   // amplitude grows away from pole
+      const offsetY = amp * Math.sin(t * Math.PI * 2.5 + phase);
+      const srcX    = Math.floor(t * FW);
+      ctx.drawImage(off, srcX, 0, 1, FH, x, offsetY, 1, H - Math.abs(offsetY));
+    }
+
+    phase += 0.04;
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
 </script>
 </body>
 </html>
