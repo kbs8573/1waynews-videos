@@ -738,84 +738,38 @@ loadVideos();
   resize();
   window.addEventListener('resize', resize);
 
-  /* ── Draw 태극기 to offscreen canvas ── */
+  /* ── 공식 태극기 SVG → offscreen canvas ── */
   const FW = 900, FH = 600;
   const off = Object.assign(document.createElement('canvas'), { width: FW, height: FH });
   const g   = off.getContext('2d');
 
-  // White background
-  g.fillStyle = '#fff';
-  g.fillRect(0, 0, FW, FH);
+  const SVG_SRC = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="600" viewBox="-36 -24 72 48"><path fill="#fff" d="M-36-24h72v48h-72z"/><g transform="rotate(-56.31)"><g id="b"><path id="a" stroke="#000" stroke-width="2" d="M-6-25H6m-12 3H6m-12 3H6"/><use xlink:href="#a" y="44"/></g><path stroke="#fff" d="M0 17v10"/><circle r="12" fill="#cd2e3a"/><path fill="#0047a0" d="M0-12A6 6 0 0 0 0 0a6 6 0 0 1 0 12 12 12 0 0 1 0-24Z"/></g><g transform="rotate(-123.69)"><use xlink:href="#b"/><path stroke="#fff" d="M0-23.5v3M0 17v3.5m0 3v3"/></g></svg>`;
 
-  const cx = FW / 2, cy = FH / 2, R = FH * 0.27;
+  const blob    = new Blob([SVG_SRC], { type: 'image/svg+xml' });
+  const blobURL = URL.createObjectURL(blob);
+  const img     = new Image();
+  img.src = blobURL;
 
-  // ── Taeguk (태극) ──
-  g.save();
-  g.translate(cx, cy);
-  g.rotate(-Math.PI / 4);  // standard orientation
-
-  g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.clip();
-
-  // Blue upper half
-  g.fillStyle = '#003478';
-  g.beginPath(); g.arc(0, 0, R, Math.PI, 0, false); g.fill();
-  // Red lower half
-  g.fillStyle = '#CD2E3A';
-  g.beginPath(); g.arc(0, 0, R, 0, Math.PI, false); g.fill();
-  // S-curve small blue circle (top)
-  g.fillStyle = '#003478';
-  g.beginPath(); g.arc(0, -R / 2, R / 2, 0, Math.PI * 2); g.fill();
-  // S-curve small red circle (bottom)
-  g.fillStyle = '#CD2E3A';
-  g.beginPath(); g.arc(0,  R / 2, R / 2, 0, Math.PI * 2); g.fill();
-
-  g.restore();
-
-  // ── Trigrams (괘) ──
-  function drawGwae(gx, gy, lines, angle) {
-    const bW = R * 0.85, bH = R * 0.1, sp = R * 0.07;
-    g.save(); g.translate(gx, gy); g.rotate(angle);
-    g.fillStyle = '#111';
-    lines.forEach((solid, i) => {
-      const y = (i - 1) * (bH + sp);
-      if (solid) {
-        g.fillRect(-bW / 2, y - bH / 2, bW, bH);
-      } else {
-        g.fillRect(-bW / 2,           y - bH / 2, bW * 0.42, bH);
-        g.fillRect(-bW / 2 + bW * 0.58, y - bH / 2, bW * 0.42, bH);
-      }
-    });
-    g.restore();
-  }
-
-  const d = R * 1.55;
-  // 건(乾) ☰ top-left   — all solid
-  drawGwae(cx - d * 0.72, cy - d * 0.42, [1,1,1],  Math.PI * 0.25);
-  // 감(坎) ☵ top-right  — broken outer
-  drawGwae(cx + d * 0.72, cy - d * 0.42, [0,1,0], -Math.PI * 0.25);
-  // 이(離) ☲ bottom-left — broken middle
-  drawGwae(cx - d * 0.72, cy + d * 0.42, [1,0,1],  Math.PI * 0.75);
-  // 곤(坤) ☷ bottom-right— all broken
-  drawGwae(cx + d * 0.72, cy + d * 0.42, [0,0,0], -Math.PI * 0.75);
-
-  /* ── Wave animation ── */
   let phase = 0;
   function tick() {
     const W = canvas.width, H = canvas.height;
     ctx.clearRect(0, 0, W, H);
-
     for (let x = 0; x < W; x++) {
-      const t       = x / W;                          // 0→1 left to right
-      const amp     = H * 0.09 * t;                   // amplitude grows away from pole
+      const t       = x / W;
+      const amp     = H * 0.09 * t;
       const offsetY = amp * Math.sin(t * Math.PI * 2.5 + phase);
       const srcX    = Math.floor(t * FW);
       ctx.drawImage(off, srcX, 0, 1, FH, x, offsetY, 1, H - Math.abs(offsetY));
     }
-
     phase += 0.04;
     requestAnimationFrame(tick);
   }
-  tick();
+
+  img.onload = () => {
+    g.drawImage(img, 0, 0, FW, FH);
+    URL.revokeObjectURL(blobURL);
+    tick();
+  };
 })();
 </script>
 </body>
