@@ -324,7 +324,7 @@
     <div class="chip c-1" onclick="setFilter(this,1)">🔵 어제 <span class="cnt" id="cnt-1">0</span></div>
     <div class="chip c-2" onclick="setFilter(this,2)">🌸 3일 전 <span class="cnt" id="cnt-2">0</span></div>
     <div class="chip c-3" onclick="setFilter(this,3)">🟠 이번 주 <span class="cnt" id="cnt-3">0</span></div>
-    <div class="chip c-4" onclick="setFilter(this,4)">🗂 지난주 이상 <span class="cnt" id="cnt-4">0</span></div>
+    <div class="chip c-4" onclick="setFilter(this,4)">🗂 일주일 이상 <span class="cnt" id="cnt-4">0</span></div>
   </div>
   <main id="main-content"></main>
 </div>
@@ -348,7 +348,7 @@ const CATS = [
   { id:1, label:'어제',        desc:'어제 업로드',     cls:'ts-1' },
   { id:2, label:'3일 전',      desc:'2~3일 전 업로드', cls:'ts-2' },
   { id:3, label:'이번 주',     desc:'4~7일 전 업로드', cls:'ts-3' },
-  { id:4, label:'지난주 이상', desc:'7일 이전 업로드',  cls:'ts-4' },
+  { id:4, label:'일주일 이상 지난 영상들', desc:'7일 이전 업로드', cls:'ts-4' },
 ];
 
 // 지난주 이상: 처음 3개만, 이후 lazy load
@@ -607,23 +607,29 @@ function buildRail(items, type, catIdx, isLazy) {
 function loadMoreLazy(type, rail, arrR, isShort) {
   const store  = lazyStore[type];
   const offset = lazyOffset[type];
-  if (offset >= store.length) return;
+
+  // All local items loaded — show YouTube fetch button
+  if (offset >= store.length) {
+    if (!rail.querySelector('.fetch-more-card'))
+      addFetchMoreCard(rail, type, isShort);
+    return;
+  }
 
   const batch = store.slice(offset, offset + LAZY_BATCH);
   if (!batch.length) return;
 
-  // Remove existing load-more placeholder if any
-  rail.querySelectorAll('.load-more-card').forEach(el => el.remove());
+  // Remove existing placeholders
+  rail.querySelectorAll('.load-more-card, .fetch-more-card').forEach(el => el.remove());
 
   batch.forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
   lazyOffset[type] += batch.length;
 
-  // If still more remaining, add a "더 보기" placeholder card at the end
   if (lazyOffset[type] < store.length) {
     addLoadMoreCard(rail, type, arrR, isShort);
+  } else {
+    addFetchMoreCard(rail, type, isShort);
   }
 
-  // Re-check arrow state
   requestAnimationFrame(() => {
     const atEnd = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
     arrR.classList.toggle('hidden', atEnd);
@@ -641,9 +647,46 @@ function addLoadMoreCard(rail, type, arrR, isShort) {
       <line x1="12" y1="8" x2="12" y2="16"/>
     </svg>
     <span>+${remaining}개 더 보기</span>`;
-  card.onclick = () => {
+  card.onclick = () => { card.remove(); loadMoreLazy(type, rail, arrR, isShort); };
+  rail.appendChild(card);
+}
+
+function addFetchMoreCard(rail, type, isShort) {
+  if (rail.querySelector('.fetch-more-card')) return;
+  const card = document.createElement('div');
+  card.className = `load-more-card fetch-more-card${isShort ? ' short-size' : ''}`;
+  card.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    <span>더 불러오기</span>`;
+  card.onclick = async () => {
+    card.innerHTML = `<div class="spinner" style="width:24px;height:24px;border-width:2px"></div><span style="font-size:11px">불러오는 중…</span>`;
+    card.onclick = null;
+
+    // Collect already-shown video IDs
+    const shown = new Set([...rail.querySelectorAll('a.card')].map(a => {
+      const m = (a.href || '').match(/[?=\/]([A-Za-z0-9_-]{11})(?:[&?]|$)/);
+      return m?.[1];
+    }).filter(Boolean));
+
+    const fresh = await scrapeYouTubePage();
     card.remove();
-    loadMoreLazy(type, rail, arrR, isShort);
+    if (!fresh?.length) return;
+
+    const newItems = fresh.filter(v => {
+      if (shown.has(v.id)) return false;
+      const pub = v.publishedAt instanceof Date ? v.publishedAt : new Date(v.publishedAt);
+      if (getBucket(pub) !== LAZY_CAT) return false;
+      if (type === 'short') return v.type === 'short' && !isLiveVideo(v);
+      if (type === 'live')  return isLiveVideo(v);
+      return !isLiveVideo(v) && v.type !== 'short';
+    });
+
+    newItems.forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
+    // If nothing new, silently done
   };
   rail.appendChild(card);
 }
@@ -681,7 +724,15 @@ function setFilter(el, f) {
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   if (f === 'all') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-  document.getElementById(`sec-${f}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const sec = document.getElementById(`sec-${f}`);
+  if (!sec) return;
+  // Offset for sticky header + sub-info + filter-bar
+  const stickyH = document.querySelector('.channel-banner')?.offsetHeight ?? 0;
+  const subH    = document.querySelector('.sub-info')?.offsetHeight ?? 0;
+  const filterH = document.querySelector('.filter-bar')?.offsetHeight ?? 0;
+  const offset  = stickyH + subH + filterH + 8;
+  const top = sec.getBoundingClientRect().top + window.scrollY - offset;
+  window.scrollTo({ top, behavior: 'smooth' });
 }
 
 // ── Helpers ──────────────────────────────────────────────
