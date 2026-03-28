@@ -81,10 +81,14 @@ def fetch_rss(channel_id):
 
 # ── ytInitialData (상대 날짜, 30개+) ─────────────────────
 def parse_relative_time(text):
-    """'3 days ago', '2주 전', '1 month ago' → datetime"""
+    """'3 days ago', '2주 전', '1 month ago', '어제', 'yesterday' → datetime"""
     if not text:
         return NOW - timedelta(days=30)
-    t = text.lower()
+    t = text.lower().strip()
+    if t.startswith('오늘') or t.startswith('today'):
+        return NOW - timedelta(hours=12)
+    if t.startswith('어제') or t.startswith('yesterday'):
+        return NOW - timedelta(days=1)
     m = re.search(r'(\d+)', t)
     n = int(m.group(1)) if m else 1
     if   re.search(r'second|초',  t): return NOW - timedelta(seconds=n)

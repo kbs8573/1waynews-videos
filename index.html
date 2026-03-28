@@ -79,6 +79,12 @@
     #intro-overlay iframe {
       width: 100%; height: 100%; border: none; pointer-events: none;
     }
+    #intro-tl-cover {
+      position: absolute; top: 0; left: 0;
+      width: 220px; height: 50px;
+      background: #000;
+      z-index: 1;
+    }
     #intro-progress {
       position: absolute; bottom: 0; left: 0;
       height: 3px; background: #e50914;
@@ -321,6 +327,7 @@
   <iframe id="intro-iframe"
     src="https://www.youtube.com/embed/0JyWrRmsjss?start=34&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1"
     allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  <div id="intro-tl-cover"></div>
   <div id="intro-progress"></div>
   <button id="intro-unmute" onclick="toggleMute()" title="소리 켜기">
     <svg id="ico-mute" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -337,6 +344,7 @@
 <header class="channel-banner">
   <canvas id="flag-bg"></canvas>
   <div class="banner-left">
+    <span class="banner-be-honest">Be honest</span>
     <div class="banner-title">전한길 뉴스 <em>FACT FIRST</em></div>
     <span class="banner-fact">@1waynews-jhg</span>
   </div>
@@ -704,8 +712,8 @@ function addFetchMoreCard(rail, type, isShort) {
     card.innerHTML = `<div class="spinner" style="width:24px;height:24px;border-width:2px"></div><span style="font-size:11px">불러오는 중…</span>`;
     card.onclick = null;
 
-    // Collect already-shown video IDs
-    const shown = new Set([...rail.querySelectorAll('a.card')].map(a => {
+    // Collect already-shown video IDs from entire page (not just this rail)
+    const shown = new Set([...document.querySelectorAll('a.card')].map(a => {
       const m = (a.href || '').match(/[?=\/]([A-Za-z0-9_-]{11})(?:[&?]|$)/);
       return m?.[1];
     }).filter(Boolean));
@@ -788,6 +796,8 @@ function fmtTime(d) {
 }
 function parseRel(t, now) {
   if (!t) return new Date(now - 30 * 86400_000);
+  if (/^오늘|^today/i.test(t.trim()))     return new Date(now - 1 * 864e5);
+  if (/^어제|^yesterday/i.test(t.trim())) return new Date(now - 1 * 864e5);
   const n = parseInt(t.match(/\d+/)?.[0] || '1');
   if (/second|초/.test(t))  return new Date(now - n * 1e3);
   if (/minute|분/.test(t))  return new Date(now - n * 6e4);
