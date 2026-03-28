@@ -61,12 +61,21 @@ def fetch_rss(channel_id):
             except ValueError:
                 pass
         pub_str = entry.findtext('atom:published', namespaces=NS) or ''
+        upd_str = entry.findtext('atom:updated',   namespaces=NS) or ''
         try:
             pub_dt = datetime.fromisoformat(pub_str.replace('Z', '+00:00'))
         except Exception:
             pub_dt = NOW
         title_rss = entry.findtext('atom:title', namespaces=NS) or ''
         is_live_rss = bool(re.search(r'\[?LIVE\]?|라이브', title_rss, re.IGNORECASE))
+        # For live videos use updated (stream-end time) when it's more recent than published
+        if is_live_rss and upd_str:
+            try:
+                upd_dt = datetime.fromisoformat(upd_str.replace('Z', '+00:00'))
+                if upd_dt > pub_dt:
+                    pub_dt = upd_dt
+            except Exception:
+                pass
         videos[vid] = {
             'id':          vid,
             'title':       title_rss,
