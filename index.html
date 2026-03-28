@@ -1004,6 +1004,7 @@ function fmtTime(d) {
   return `업데이트: ${d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
 }
 let modalMuted = true;  // 모달 독립 음소거 상태
+let modalTimer = null;  // 모달 1분 프리뷰 타이머
 
 function showVideoModal(v) {
   if (!v || document.getElementById('vd-overlay')) return;
@@ -1054,6 +1055,36 @@ function showVideoModal(v) {
   document.body.appendChild(overlay);
   // iframe 로드 후 모달 소리 상태 적용
   setTimeout(() => applyModalMute(modalMuted), 800);
+
+  // 1분 프리뷰 타이머 (히어로에서 이어받은 잔여 시간)
+  clearTimeout(modalTimer);
+  const remaining = Math.max(0, 60 - start);
+  if (remaining <= 0) {
+    stopModalVideo();
+  } else {
+    modalTimer = setTimeout(stopModalVideo, remaining * 1000);
+  }
+}
+
+function stopModalVideo() {
+  clearTimeout(modalTimer);
+  const wrap = document.getElementById('vd-video-wrap');
+  if (!wrap) return;
+  document.getElementById('vd-iframe')?.remove();
+  document.getElementById('vd-video-grad')?.remove();
+  // 프리뷰 종료 안내
+  const ended = document.createElement('div');
+  ended.id = 'vd-ended';
+  ended.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#fff;font-size:14px;';
+  const v = window._heroVideo;
+  ended.innerHTML = `
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span style="opacity:0.8">프리뷰가 종료되었습니다</span>
+    ${v ? `<a href="${esc(v.url)}" target="_blank" rel="noopener" style="padding:8px 20px;background:#e50914;border-radius:4px;color:#fff;text-decoration:none;font-size:13px;font-weight:600;">YouTube에서 계속 보기</a>` : ''}`;
+  wrap.appendChild(ended);
+  // 소리 버튼 숨김
+  const unmuteBtn = document.getElementById('vd-unmute');
+  if (unmuteBtn) unmuteBtn.style.display = 'none';
 }
 
 function applyModalMute(muted) {
@@ -1073,6 +1104,7 @@ function vdToggleMute() {
 }
 
 function closeVideoModal() {
+  clearTimeout(modalTimer);
   const targetMuted = modalMuted;  // 모달 닫힐 때 소리 상태 저장
   document.getElementById('vd-overlay')?.remove();
 
