@@ -828,7 +828,7 @@ function setFilter(el, f) {
     sec.style.display = hasVisible ? '' : 'none';
   });
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // 스크롤 위치 유지 (필터 클릭 시 현재 위치에서 필터링)
 }
 
 // ── Helpers ──────────────────────────────────────────────
@@ -918,7 +918,9 @@ function initHero(v) {
 
   clearTimeout(heroTimer);
   heroTimer = setTimeout(() => {
-    // 1분 후 — 썸네일 복원, 다시보기 버튼 표시
+    // 1분 후 — 완전 정지 후 썸네일 복원, 다시보기 버튼 표시
+    iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'stopVideo', args:[] }), '*');
+    iframe.src = '';
     iframe.style.opacity = '0';
     thumb.style.opacity  = '1';
     document.getElementById('hero-mute').style.display   = 'none';
