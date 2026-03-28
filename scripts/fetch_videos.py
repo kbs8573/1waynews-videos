@@ -1,5 +1,5 @@
 """
-Fetches 1waynews YouTube channel videos + shorts and saves to data.json.
+Fetches multiple YouTube channel videos + shorts and saves to data.json.
 - RSS  : 최근 15개 (정확한 날짜)
 - ytInitialData : 최근 30개 이상 (상대 날짜 파싱)
 → 두 소스를 병합해 더 넓은 기간의 영상을 커버합니다.
@@ -10,8 +10,10 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 from urllib.request import Request, urlopen
 
-CHANNEL_HANDLE = '@1waynews-jhg'
-BASE_URL = f'https://www.youtube.com/{CHANNEL_HANDLE}'
+CHANNELS = [
+    {'handle': '@1waynews-jhg', 'label': '전한길뉴스'},
+    {'handle': '@hangilog',     'label': '한기로그'},
+]
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
@@ -214,43 +216,41 @@ def get_short_ids(html):
     return set(re.findall(r'"videoId"\s*:\s*"([A-Za-z0-9_-]{10,12})"', html))
 
 
-# ── Main ─────────────────────────────────────────────────
-def main():
-    print('📡 Fetching channel /videos page…')
-    videos_html = fetch(BASE_URL + '/videos')
+# ── 채널 단위 fetch ───────────────────────────────────────
+def fetch_channel(handle, label):
+    base_url = f'https://www.youtube.com/{handle}'
+    print(f'\n📡 [{label}] /videos 페이지 로드 중…')
+    videos_html = fetch(base_url + '/videos')
     channel_id  = get_channel_id(videos_html)
     if not channel_id:
-        raise RuntimeError('Could not find channel ID')
-    print(f'✅ Channel ID: {channel_id}')
+        raise RuntimeError(f'[{label}] Channel ID를 찾을 수 없습니다')
+    print(f'   ✅ Channel ID: {channel_id}')
 
-    # 1. RSS (정확한 날짜)
-    print('📋 Fetching RSS (accurate dates)…')
+    # RSS
+    print(f'   📋 RSS 로드 중…')
     rss_items = fetch_rss(channel_id)
-    print(f'   RSS: {len(rss_items)} items')
+    print(f'   RSS: {len(rss_items)}개')
 
-    # 2. ytInitialData /videos (상대 날짜, 30개+)
-    print('🔍 Parsing ytInitialData /videos…')
-    yt_items = scrape_videos_page(BASE_URL + '/videos')
-    print(f'   ytInitialData /videos: {len(yt_items)} items')
+    # ytInitialData /videos
+    print(f'   🔍 ytInitialData /videos 파싱 중…')
+    yt_items = scrape_videos_page(base_url + '/videos')
+    print(f'   ytInitialData /videos: {len(yt_items)}개')
 
-    # 3. 병합: RSS 날짜 우선, ytInitialData로 보완
+    # 병합: RSS 날짜 우선
     merged = {}
     for vid, v in yt_items.items():
         merged[vid] = v
     for vid, v in rss_items.items():
-        # RSS has accurate date — override ytInitialData entry
         if vid in merged:
             merged[vid]['publishedAt'] = v['publishedAt']
             if v['views'] is not None:
                 merged[vid]['views'] = v['views']
-            # Preserve 'live' type if either source detected it
             if v['type'] == 'live':
                 merged[vid]['type'] = 'live'
         else:
             merged[vid] = v
 
-    # 3-b. 구독자 전용(멤버십) 콘텐츠 제외
-    # RSS에만 있고(ytInitialData 공개 목록에 없음) views == 0 인 경우
+    # 구독자 전용(멤버십) 콘텐츠 제외
     yt_ids = set(yt_items.keys())
     excluded = [vid for vid, v in merged.items()
                 if v.get('views') == 0 and vid not in yt_ids]
@@ -258,12 +258,12 @@ def main():
         print(f'   ⛔ 구독자 전용 제외: {merged[vid]["title"][:40]}')
         del merged[vid]
 
-    print(f'   Merged total: {len(merged)} unique items')
+    print(f'   병합 후 총 {len(merged)}개')
 
-    # 4. Shorts 감지
-    print('🩳 Fetching /shorts page…')
+    # Shorts 감지
+    print(f'   🩳 /shorts 페이지 로드 중…')
     try:
-        shorts_html = fetch(BASE_URL + '/shorts')
+        shorts_html = fetch(base_url + '/shorts')
         short_ids = get_short_ids(shorts_html)
         marked = 0
         for vid, v in merged.items():
@@ -271,17 +271,38 @@ def main():
                 v['type'] = 'short'
                 v['url']  = f'https://www.youtube.com/shorts/{vid}'
                 marked += 1
-        print(f'   Marked {marked} shorts')
+        print(f'   Shorts {marked}개 표시')
     except Exception as e:
-        print(f'⚠️  Shorts page failed: {e}')
+        print(f'   ⚠️  Shorts 페이지 오류: {e}')
 
-    # 5. 날짜순 정렬 (최신순)
-    videos = sorted(merged.values(), key=lambda v: v['publishedAt'], reverse=True)
+    # channel 필드 추가
+    for v in merged.values():
+        v['channel']      = handle.lstrip('@')
+        v['channelLabel'] = label
+
+    return merged, channel_id
+
+
+# ── Main ─────────────────────────────────────────────────
+def main():
+    all_videos = {}
+    channel_ids = []
+
+    for ch in CHANNELS:
+        videos, channel_id = fetch_channel(ch['handle'], ch['label'])
+        channel_ids.append(channel_id)
+        # 채널 간 같은 videoId 충돌 방지 (거의 없지만 안전하게)
+        for vid, v in videos.items():
+            all_videos[vid] = v
+
+    # 날짜순 정렬 (최신순)
+    videos = sorted(all_videos.values(), key=lambda v: v['publishedAt'], reverse=True)
 
     data = {
-        'updated':   NOW.strftime('%Y-%m-%dT%H:%M:%SZ'),
-        'channelId': channel_id,
-        'videos':    videos,
+        'updated':    NOW.strftime('%Y-%m-%dT%H:%M:%SZ'),
+        'channelIds': channel_ids,
+        'channels':   CHANNELS,
+        'videos':     videos,
     }
 
     with open('data.json', 'w', encoding='utf-8') as f:
@@ -289,7 +310,11 @@ def main():
 
     v_cnt = sum(1 for v in videos if v['type'] == 'video')
     s_cnt = sum(1 for v in videos if v['type'] == 'short')
-    print(f'💾 Saved data.json — 동영상 {v_cnt}개, Shorts {s_cnt}개 (총 {len(videos)}개)')
+    l_cnt = sum(1 for v in videos if v['type'] == 'live')
+    print(f'\n💾 data.json 저장 완료 — 동영상 {v_cnt}개, Shorts {s_cnt}개, 라이브 {l_cnt}개 (총 {len(videos)}개)')
+    for ch in CHANNELS:
+        cnt = sum(1 for v in videos if v.get('channel') == ch['handle'].lstrip('@'))
+        print(f'   [{ch["label"]}] {cnt}개')
 
 
 if __name__ == '__main__':

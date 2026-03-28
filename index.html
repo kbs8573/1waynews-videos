@@ -281,7 +281,12 @@
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
       overflow: hidden; margin-bottom: 5px;
     }
-    .card-views { font-size: 11px; color: var(--muted); }
+    .card-views { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .card-ch {
+      font-size: 10px; font-weight: 700; letter-spacing: .3px;
+      padding: 1px 6px; border-radius: 3px; line-height: 1.6;
+      background: rgba(255,255,255,.08); color: var(--muted);
+    }
 
     /* ── Load-more (지난주 이상) ── */
     .load-more-card {
@@ -779,7 +784,7 @@ function cardHTML(v) {
   </div>
   <div class="card-body">
     <div class="card-title">${esc(v.title)}</div>
-    <div class="card-views">${views}</div>
+    <div class="card-views">${v.channelLabel ? `<span class="card-ch">${esc(v.channelLabel)}</span>` : ''}${views}</div>
   </div>
 </a>`;
 }
@@ -820,10 +825,12 @@ function showYtPopup() {
   overlay.innerHTML = `
     <div id="yt-popup">
       <div class="yt-popup-icon">📺</div>
-      <p>더 많은 영상을 보려면 유투브 전한길 뉴스 채널에서 보시기 바랍니다.</p>
+      <p>더 많은 영상을 보려면 유튜브 채널에서 확인해 주세요.</p>
       <div class="yt-popup-btns">
         <a href="https://www.youtube.com/@1waynews-jhg" target="_blank" rel="noopener"
-           onclick="closeYtPopup()">전한길 유투브 채널 바로가기</a>
+           onclick="closeYtPopup()">전한길뉴스 유튜브 채널 바로가기</a>
+        <a href="https://www.youtube.com/@hangilog" target="_blank" rel="noopener"
+           onclick="closeYtPopup()">한기로그 유튜브 채널 바로가기</a>
         <button onclick="closeYtPopup()">닫기</button>
       </div>
     </div>`;
