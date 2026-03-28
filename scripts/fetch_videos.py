@@ -157,8 +157,10 @@ def scrape_videos_page(url):
     items = parse_video_items(data)
     result = {}
     for item in items:
+        rich_content = item.get('richItemRenderer', {}).get('content', {})
         vr = (
-            item.get('richItemRenderer', {}).get('content', {}).get('videoRenderer')
+            rich_content.get('videoRenderer')
+            or rich_content.get('reelItemRenderer')
             or item.get('gridVideoRenderer')
             or item.get('reelItemRenderer')
             or item.get('videoRenderer')
@@ -168,6 +170,13 @@ def scrape_videos_page(url):
         vid = vr.get('videoId')
         if not vid:
             continue
+
+        # reelItemRenderer = short
+        is_short = bool(
+            rich_content.get('reelItemRenderer')
+            or item.get('reelItemRenderer')
+        )
+
         time_text = (vr.get('publishedTimeText') or {}).get('simpleText', '')
         pub_dt = parse_relative_time(time_text)
         views_raw = (vr.get('viewCountText') or {}).get('simpleText', '')
@@ -178,12 +187,17 @@ def scrape_videos_page(url):
                 views = int(vm.group().replace(',', ''))
             except ValueError:
                 pass
+
+        # title: videoRenderer → 'title', reelItemRenderer → 'headline'
         title = ''
-        t = vr.get('title', {})
-        if 'runs' in t:
-            title = ''.join(r.get('text', '') for r in t['runs'])
-        elif 'simpleText' in t:
-            title = t['simpleText']
+        for key in ('title', 'headline'):
+            t = vr.get(key, {})
+            if 'runs' in t:
+                title = ''.join(r.get('text', '') for r in t['runs'])
+                break
+            elif 'simpleText' in t:
+                title = t['simpleText']
+                break
 
         # Detect LIVE via thumbnailOverlays or badges
         is_live = False
@@ -199,21 +213,60 @@ def scrape_videos_page(url):
         if not is_live and re.search(r'\[?LIVE\]?|라이브', title, re.IGNORECASE):
             is_live = True
 
+        vid_type = 'live' if is_live else ('short' if is_short else 'video')
         result[vid] = {
             'id':          vid,
             'title':       title,
             'publishedAt': pub_dt.strftime('%Y-%m-%dT%H:%M:%SZ'),
             'views':       views,
             'thumb':       f'https://i.ytimg.com/vi/{vid}/mqdefault.jpg',
-            'url':         f'https://www.youtube.com/watch?v={vid}',
-            'type':        'live' if is_live else 'video',
+            'url':         f'https://www.youtube.com/shorts/{vid}' if is_short else f'https://www.youtube.com/watch?v={vid}',
+            'type':        vid_type,
         }
     return result
 
 
 # ── Shorts 감지 ──────────────────────────────────────────
 def get_short_ids(html):
-    return set(re.findall(r'"videoId"\s*:\s*"([A-Za-z0-9_-]{10,12})"', html))
+    """
+    /shorts 페이지 ytInitialData에서 short ID 추출.
+    - 구 구조: reelItemRenderer
+    - 신 구조: shortsLockupViewModel (2024년 이후 YouTube UI)
+    """
+    data = extract_yt_initial_data(html)
+    if not data:
+        return set()
+    short_ids = set()
+    tabs = (data or {}).get('contents', {}).get('twoColumnBrowseResultsRenderer', {}).get('tabs', [])
+    for tab in tabs:
+        content = tab.get('tabRenderer', {}).get('content', {})
+        grid = (
+            content.get('richGridRenderer', {}).get('contents')
+            or content.get('sectionListRenderer', {}).get('contents', [{}])[0]
+                       .get('itemSectionRenderer', {}).get('contents', [{}])[0]
+                       .get('gridRenderer', {}).get('items')
+        )
+        for item in (grid or []):
+            rc = item.get('richItemRenderer', {}).get('content', {})
+
+            # 구 구조: reelItemRenderer
+            vr = rc.get('reelItemRenderer') or item.get('reelItemRenderer')
+            if vr:
+                vid = vr.get('videoId')
+                if vid:
+                    short_ids.add(vid)
+                    continue
+
+            # 신 구조: shortsLockupViewModel
+            slvm = rc.get('shortsLockupViewModel') or item.get('shortsLockupViewModel')
+            if slvm:
+                vid = (slvm.get('onTap', {})
+                           .get('innertubeCommand', {})
+                           .get('reelWatchEndpoint', {})
+                           .get('videoId'))
+                if vid:
+                    short_ids.add(vid)
+    return short_ids
 
 
 # ── 채널 단위 fetch ───────────────────────────────────────
