@@ -600,6 +600,28 @@ function isLiveVideo(v) {
   return v.type === 'live' || /\[?LIVE\]?|라이브/i.test(v.title);
 }
 
+function pickHeroVideo(videos) {
+  const now = Date.now();
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+
+  // 1. 현재 라이브 중: type=live + 4시간 이내 업로드
+  const currentLive = videos.find(v =>
+    isLiveVideo(v) && (now - new Date(v.publishedAt).getTime()) < 4 * 3600_000
+  );
+  if (currentLive) return currentLive;
+
+  // 2. 후보 풀 (랜덤)
+  const todayVids = videos.filter(v => new Date(v.publishedAt) >= todayStart);
+
+  const todayLive     = todayVids.find(v => isLiveVideo(v));                           // 오늘 라이브
+  const mostViewed    = [...videos].sort((a, b) => (b.views||0) - (a.views||0))[0];   // 누적 최다 조회수
+  const mostRecent    = videos[0];                                                      // 가장 최근 영상
+  const todayTopView  = [...todayVids].sort((a, b) => (b.views||0) - (a.views||0))[0]; // 오늘 최다 조회수
+
+  const pool = [...new Set([todayLive, mostViewed, mostRecent, todayTopView].filter(Boolean))];
+  return pool[Math.floor(Math.random() * pool.length)] || videos[0];
+}
+
 function getBucket(pub) {
   const today = new Date(); today.setHours(0,0,0,0);
   const ago = n => new Date(+today - n * 86400_000);
@@ -706,10 +728,9 @@ function parseYtData(data) {
 
 // ── Render ────────────────────────────────────────────────
 function render(videos) {
-  // Hero: 가장 최근 영상 (live 우선, 없으면 video)
-  const heroVideo = videos.find(v => isLiveVideo(v)) || videos[0];
-  window._heroVideo = heroVideo;
-  initHero(heroVideo);
+  // Hero 영상 선택
+  window._heroVideo = pickHeroVideo(videos);
+  initHero(window._heroVideo);
 
   const buckets = CATS.map(() => ({ lives: [], videos: [], shorts: [] }));
   videos.forEach(v => {
