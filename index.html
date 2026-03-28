@@ -1035,6 +1035,21 @@ window.addEventListener('scroll', () => {
   document.getElementById('nf-nav').classList.toggle('solid', window.scrollY > 20);
 }, { passive: true });
 
+// 히어로 섹션 스크롤 아웃 시 재생 중단
+new IntersectionObserver(entries => {
+  if (!entries[0].isIntersecting) {
+    const iframe = document.getElementById('hero-iframe');
+    if (iframe?.src) {
+      iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'stopVideo', args:[] }), '*');
+      iframe.src = '';
+      clearTimeout(heroTimer);
+      document.getElementById('hero-thumb').style.opacity  = '1';
+      document.getElementById('hero-mute').style.display   = 'none';
+      document.getElementById('hero-replay').style.display = 'flex';
+    }
+  }
+}, { threshold: 0.1 }).observe(document.getElementById('hero'));
+
 loadVideos();
 </script>
 </body>
