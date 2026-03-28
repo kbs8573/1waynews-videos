@@ -1339,6 +1339,16 @@ new IntersectionObserver(entries => {
 }, { threshold: 0.1 }).observe(document.getElementById('hero'));
 
 loadVideos();
+
+// 백그라운드 복귀 시 데이터 갱신 (5분 이상 백그라운드였을 경우)
+let _hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    _hiddenAt = Date.now();
+  } else if (_hiddenAt > 0 && Date.now() - _hiddenAt > 5 * 60 * 1000) {
+    loadVideos();
+  }
+});
 </script>
 </body>
 </html>
