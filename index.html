@@ -289,6 +289,39 @@
     .load-more-card svg { width: 28px; height: 28px; }
     .load-more-card span { font-size: 12px; font-weight: 600; }
 
+    /* ── YouTube redirect popup ── */
+    #yt-popup-overlay {
+      position: fixed; inset: 0; z-index: 8000;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #yt-popup {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 32px 28px 24px;
+      max-width: 380px; width: 90%; text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    #yt-popup .yt-popup-icon { font-size: 36px; margin-bottom: 14px; }
+    #yt-popup p {
+      color: var(--text); font-size: 14px; line-height: 1.7;
+      margin: 0 0 24px;
+    }
+    .yt-popup-btns { display: flex; flex-direction: column; gap: 10px; }
+    .yt-popup-btns a {
+      display: block; padding: 11px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 700; text-decoration: none;
+      background: #e50914; color: #fff;
+      transition: background .2s;
+    }
+    .yt-popup-btns a:hover { background: #c0000f; }
+    .yt-popup-btns button {
+      padding: 10px 20px; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      background: var(--surface2); color: var(--muted);
+      border: 1px solid var(--border); transition: background .2s, color .2s;
+    }
+    .yt-popup-btns button:hover { background: var(--border); color: var(--text); }
+
     /* ── States ── */
     #loading {
       display: flex; flex-direction: column; align-items: center;
@@ -731,8 +764,11 @@ function addFetchMoreCard(rail, type, isShort) {
       return !isLiveVideo(v) && v.type !== 'short';
     });
 
+    if (!newItems.length) {
+      showYtPopup();
+      return;
+    }
     newItems.slice(0, 7).forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
-    // If nothing new, silently done
   };
   rail.appendChild(card);
 }
@@ -794,6 +830,27 @@ function setTxt(id, v) { const el = document.getElementById(id); if (el) el.text
 function fmtTime(d) {
   return `업데이트: ${d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
 }
+function showYtPopup() {
+  if (document.getElementById('yt-popup-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'yt-popup-overlay';
+  overlay.innerHTML = `
+    <div id="yt-popup">
+      <div class="yt-popup-icon">📺</div>
+      <p>더 많은 영상을 보려면 유투브 전한길 뉴스 채널에서 보시기 바랍니다.</p>
+      <div class="yt-popup-btns">
+        <a href="https://www.youtube.com/@1waynews-jhg" target="_blank" rel="noopener"
+           onclick="closeYtPopup()">전한길 유투브 채널 바로가기</a>
+        <button onclick="closeYtPopup()">닫기</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeYtPopup(); });
+  document.body.appendChild(overlay);
+}
+function closeYtPopup() {
+  document.getElementById('yt-popup-overlay')?.remove();
+}
+
 function parseRel(t, now) {
   if (!t) return new Date(now - 30 * 86400_000);
   if (/^오늘|^today/i.test(t.trim()))     return new Date(now - 1 * 864e5);
