@@ -766,8 +766,8 @@ function buildRail(items, type, catIdx, isLazy) {
   const cardW = isShort ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--s-w')) || 145
                         : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--v-w')) || 258;
 
-  arrL.onclick = () => rail.scrollBy({ left: -(cardW + 12) * 3, behavior: 'smooth' });
-  arrR.onclick = () => rail.scrollBy({ left:  (cardW + 12) * 3, behavior: 'smooth' });
+  arrL.onclick = () => rail.scrollTo({ left: Math.max(0, rail.scrollLeft - (cardW + 12) * 3), behavior: 'smooth' });
+  arrR.onclick = () => rail.scrollTo({ left: Math.min(rail.scrollWidth - rail.clientWidth, rail.scrollLeft + (cardW + 12) * 3), behavior: 'smooth' });
 
   // Update arrow visibility on scroll
   const updateArrows = () => {
