@@ -513,6 +513,7 @@
 <div id="err-msg">영상 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>
 
 <script>
+history.scrollRestoration = 'manual';  // 새로고침 시 항상 최상단에서 시작
 const YT_URL = 'https://www.youtube.com/@1waynews-jhg/videos';
 const PROXIES = [
   u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
