@@ -405,6 +405,10 @@
     }
     #content { display: none; }
 
+    @media (min-width: 641px) and (max-width: 1024px) {
+      #hero { height: 60vh; min-height: 340px; }
+      #hero-info { max-width: 60%; }
+    }
     @media (max-width: 640px) {
       :root { --v-w: 210px; --s-w: 128px; }
       #hero { height: 56vw; min-height: 260px; }
