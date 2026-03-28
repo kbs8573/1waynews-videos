@@ -465,7 +465,7 @@
 <!-- ── Hero ── -->
 <section id="hero">
   <div id="hero-thumb"></div>
-  <iframe id="hero-iframe" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
   <div id="hero-gradient"></div>
   <div id="hero-info">
     <div id="hero-ch-label"></div>
@@ -983,35 +983,43 @@ setTimeout(dismissIntro, 3000);
 // ── Hero ─────────────────────────────────────────────────
 let heroMuted = true;
 let heroTimer = null;
+const HERO_IFRAME_STYLE = 'position:absolute;top:-60px;left:-10%;width:120%;height:calc(100% + 120px);border:none;pointer-events:none;transition:opacity 1s ease;';
+
+function createHeroIframe(videoId) {
+  // 기존 iframe 완전 제거 (src 변경 없이 DOM에서 삭제 → 히스토리 영향 없음)
+  document.getElementById('hero-iframe')?.remove();
+  const iframe = document.createElement('iframe');
+  iframe.id    = 'hero-iframe';
+  iframe.style.cssText = HERO_IFRAME_STYLE;
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.allowFullscreen = true;
+  iframe.src   = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1`;
+  document.getElementById('hero').insertBefore(iframe, document.getElementById('hero-gradient'));
+  return iframe;
+}
+
+function stopHeroVideo() {
+  clearTimeout(heroTimer);
+  document.getElementById('hero-iframe')?.remove();   // DOM 제거 → 즉시 재생 중단, 히스토리 무영향
+  document.getElementById('hero-thumb').style.opacity  = '1';
+  document.getElementById('hero-mute').style.display   = 'none';
+  document.getElementById('hero-replay').style.display = 'flex';
+}
 
 function initHero(v) {
   if (!v) return;
-  const iframe  = document.getElementById('hero-iframe');
   const thumb   = document.getElementById('hero-thumb');
-  const title   = document.getElementById('hero-title');
-  const chLabel = document.getElementById('hero-ch-label');
-  const playBtn = document.getElementById('hero-play-btn');
-
-  chLabel.textContent = v.channelLabel || '';
-  title.textContent   = v.title || '';
-  playBtn.href        = v.url || '#';
+  document.getElementById('hero-ch-label').textContent = v.channelLabel || '';
+  document.getElementById('hero-title').textContent    = v.title || '';
+  document.getElementById('hero-play-btn').href        = v.url || '#';
   thumb.style.backgroundImage = `url('${v.thumb}')`;
 
-  // iframe: 60초 자동 재생 (muted)
-  iframe.src = `https://www.youtube.com/embed/${v.id}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1`;
+  const iframe = createHeroIframe(v.id);
   iframe.style.opacity = '1';
-  thumb.style.opacity  = '0.3';  // dim thumbnail while video plays
+  thumb.style.opacity  = '0.3';
 
   clearTimeout(heroTimer);
-  heroTimer = setTimeout(() => {
-    // 1분 후 — 완전 정지 후 썸네일 복원, 다시보기 버튼 표시
-    iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'stopVideo', args:[] }), '*');
-    iframe.src = 'about:blank';
-    iframe.style.opacity = '0';
-    thumb.style.opacity  = '1';
-    document.getElementById('hero-mute').style.display   = 'none';
-    document.getElementById('hero-replay').style.display = 'flex';
-  }, 60000);
+  heroTimer = setTimeout(stopHeroVideo, 60000);  // 1분 후 정지
 }
 
 function heroReplay() {
@@ -1027,9 +1035,9 @@ function heroReplay() {
 
 function heroToggleMute() {
   const iframe = document.getElementById('hero-iframe');
+  if (!iframe) return;
   heroMuted = !heroMuted;
-  const cmd = heroMuted ? 'mute' : 'unMute';
-  iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func: cmd, args:[] }), '*');
+  iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func: heroMuted ? 'mute' : 'unMute', args:[] }), '*');
   document.getElementById('hero-ico-mute').style.display  = heroMuted ? '' : 'none';
   document.getElementById('hero-ico-sound').style.display = heroMuted ? 'none' : '';
 }
@@ -1041,16 +1049,8 @@ window.addEventListener('scroll', () => {
 
 // 히어로 섹션 스크롤 아웃 시 재생 중단
 new IntersectionObserver(entries => {
-  if (!entries[0].isIntersecting) {
-    const iframe = document.getElementById('hero-iframe');
-    if (iframe?.src) {
-      iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'stopVideo', args:[] }), '*');
-      iframe.src = 'about:blank';
-      clearTimeout(heroTimer);
-      document.getElementById('hero-thumb').style.opacity  = '1';
-      document.getElementById('hero-mute').style.display   = 'none';
-      document.getElementById('hero-replay').style.display = 'flex';
-    }
+  if (!entries[0].isIntersecting && document.getElementById('hero-iframe')) {
+    stopHeroVideo();
   }
 }, { threshold: 0.1 }).observe(document.getElementById('hero'));
 
