@@ -85,6 +85,7 @@
       animation: progress-bar 5s linear forwards;
     }
     @keyframes progress-bar { from { width: 0 } to { width: 100% } }
+    #intro-progress { animation-duration: 3s; }
     #intro-skip {
       position: absolute; bottom: 20px; right: 20px;
       color: rgba(255,255,255,.65); font-size: 13px; cursor: pointer;
@@ -308,7 +309,7 @@
 
 <!-- ── Intro Overlay ── -->
 <div id="intro-overlay">
-  <iframe src="https://www.youtube.com/embed/0JyWrRmsjss?start=33&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1"
+  <iframe src="https://www.youtube.com/embed/0JyWrRmsjss?start=34&autoplay=1&mute=0&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1"
     allow="autoplay; encrypted-media" allowfullscreen></iframe>
   <div id="intro-progress"></div>
   <div id="intro-skip" onclick="dismissIntro()">건너뛰기 ›</div>
@@ -364,14 +365,13 @@ const PROXIES = [
 
 const CATS = [
   { id:0, label:'오늘',        desc:'오늘 업로드',    cls:'ts-0' },
-  { id:1, label:'어제',        desc:'어제 업로드',     cls:'ts-1' },
-  { id:2, label:'3일 전',      desc:'2~3일 전 업로드', cls:'ts-2' },
-  { id:3, label:'이번 주',     desc:'4~7일 전 업로드', cls:'ts-3' },
-  { id:4, label:'일주일 이상 지난 영상들', desc:'7일 이전 업로드', cls:'ts-4' },
+  { id:1, label:'어제',        desc:'어제 업로드',    cls:'ts-1' },
+  { id:2, label:'이번 주',     desc:'2~7일 전 업로드', cls:'ts-3' },
+  { id:3, label:'일주일 이상 지난 영상들', desc:'7일 이전 업로드', cls:'ts-4' },
 ];
 
 // 지난주 이상: 처음 3개만, 이후 lazy load
-const LAZY_CAT   = 4;
+const LAZY_CAT   = 3;
 const LAZY_INIT  = 3;
 const LAZY_BATCH = 7;
 
@@ -388,9 +388,8 @@ function getBucket(pub) {
   const ago = n => new Date(+today - n * 86400_000);
   if (pub >= today)  return 0;
   if (pub >= ago(1)) return 1;
-  if (pub >= ago(3)) return 2;
-  if (pub >= ago(7)) return 3;
-  return 4;
+  if (pub >= ago(7)) return 2;  // 이번 주 (2~7일 전, 3일 전 포함)
+  return 3;
 }
 
 // ── Load ─────────────────────────────────────────────────
@@ -806,7 +805,7 @@ function dismissIntro() {
   overlay.style.opacity = '0';
   setTimeout(() => overlay.remove(), 650);
 }
-setTimeout(dismissIntro, 5000);
+setTimeout(dismissIntro, 3000);
 
 loadVideos();
 
