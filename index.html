@@ -744,36 +744,8 @@ function addFetchMoreCard(rail, type, isShort) {
       <polyline points="7 10 12 15 17 10"/>
       <line x1="12" y1="15" x2="12" y2="3"/>
     </svg>
-    <span>더 불러오기</span>`;
-  card.onclick = async () => {
-    card.innerHTML = `<div class="spinner" style="width:24px;height:24px;border-width:2px"></div><span style="font-size:11px">불러오는 중…</span>`;
-    card.onclick = null;
-
-    // Collect already-shown video IDs from entire page (not just this rail)
-    const shown = new Set([...document.querySelectorAll('a.card')].map(a => {
-      const m = (a.href || '').match(/[?=\/]([A-Za-z0-9_-]{11})(?:[&?]|$)/);
-      return m?.[1];
-    }).filter(Boolean));
-
-    const fresh = await scrapeYouTubePage();
-    card.remove();
-    if (!fresh?.length) return;
-
-    const newItems = fresh.filter(v => {
-      if (shown.has(v.id)) return false;
-      const pub = v.publishedAt instanceof Date ? v.publishedAt : new Date(v.publishedAt);
-      if (getBucket(pub) !== LAZY_CAT) return false;
-      if (type === 'short') return v.type === 'short' && !isLiveVideo(v);
-      if (type === 'live')  return isLiveVideo(v);
-      return !isLiveVideo(v) && v.type !== 'short';
-    });
-
-    if (!newItems.length) {
-      showYtPopup();
-      return;
-    }
-    newItems.slice(0, 7).forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
-  };
+    <span>더 많은 영상 보러가기</span>`;
+  card.onclick = () => showYtPopup();
   rail.appendChild(card);
 }
 
