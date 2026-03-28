@@ -3,40 +3,28 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light dark" />
+  <meta name="color-scheme" content="dark" />
   <title>전한길 뉴스 최근 영상</title>
   <style>
     :root {
-      color-scheme: light dark;
-      --bg:       #0d0d0d;
-      --surface:  #1a1a1a;
-      --surface2: #252525;
-      --border:   #2e2e2e;
-      --text:     #f0f0f0;
-      --muted:    #888;
-      --header:   #0a0a0a;
-      --spinner-track: #2e2e2e;
+      color-scheme: dark;
+      --bg:       #141414;
+      --surface:  #1f1f1f;
+      --surface2: #2a2a2a;
+      --border:   #333;
+      --text:     #e5e5e5;
+      --muted:    #777;
+      --header:   #000;
+      --spinner-track: #333;
 
-      --c0: #34d399; --c0-bg: rgba(52,211,153,.1);  --c0-bd: rgba(52,211,153,.3);
-      --c1: #60a5fa; --c1-bg: rgba(96,165,250,.1);  --c1-bd: rgba(96,165,250,.3);
-      --c2: #f472b6; --c2-bg: rgba(244,114,182,.1); --c2-bd: rgba(244,114,182,.3);
-      --c3: #fb923c; --c3-bg: rgba(251,146,60,.1);  --c3-bd: rgba(251,146,60,.3);
-      --c4: #94a3b8; --c4-bg: rgba(148,163,184,.1); --c4-bd: rgba(148,163,184,.3);
+      --c0: #4ade80; --c0-bg: rgba(74,222,128,.12);  --c0-bd: rgba(74,222,128,.3);
+      --c1: #60a5fa; --c1-bg: rgba(96,165,250,.12);  --c1-bd: rgba(96,165,250,.3);
+      --c2: #f472b6; --c2-bg: rgba(244,114,182,.12); --c2-bd: rgba(244,114,182,.3);
+      --c3: #fb923c; --c3-bg: rgba(251,146,60,.12);  --c3-bd: rgba(251,146,60,.3);
+      --c4: #a1a1aa; --c4-bg: rgba(161,161,170,.1);  --c4-bd: rgba(161,161,170,.3);
 
-      --v-w: 258px;   /* video card width */
-      --s-w: 145px;   /* shorts card width */
-    }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f3f4f6; --surface: #fff; --surface2: #f0f0f0;
-        --border: #e5e7eb; --text: #111; --muted: #666; --header: #fff;
-        --spinner-track: #e5e7eb;
-        --c0:#059669;--c0-bg:rgba(5,150,105,.08);--c0-bd:rgba(5,150,105,.3);
-        --c1:#2563eb;--c1-bg:rgba(37,99,235,.08);--c1-bd:rgba(37,99,235,.3);
-        --c2:#db2777;--c2-bg:rgba(219,39,119,.08);--c2-bd:rgba(219,39,119,.3);
-        --c3:#ea580c;--c3-bg:rgba(234,88,12,.08);--c3-bd:rgba(234,88,12,.3);
-        --c4:#475569;--c4-bg:rgba(71,85,105,.08);--c4-bd:rgba(71,85,105,.3);
-      }
+      --v-w: 258px;
+      --s-w: 145px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -354,7 +342,7 @@ const CATS = [
 // 지난주 이상: 처음 3개만, 이후 lazy load
 const LAZY_CAT   = 4;
 const LAZY_INIT  = 3;
-const LAZY_BATCH = 5;
+const LAZY_BATCH = 7;
 
 // lazy store: { live: [...], video: [...], short: [...] }
 const lazyStore  = { live: [], video: [], short: [] };
@@ -685,7 +673,7 @@ function addFetchMoreCard(rail, type, isShort) {
       return !isLiveVideo(v) && v.type !== 'short';
     });
 
-    newItems.forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
+    newItems.slice(0, 7).forEach(v => rail.insertAdjacentHTML('beforeend', cardHTML(v)));
     // If nothing new, silently done
   };
   rail.appendChild(card);
@@ -726,12 +714,9 @@ function setFilter(el, f) {
   if (f === 'all') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
   const sec = document.getElementById(`sec-${f}`);
   if (!sec) return;
-  // Offset for sticky header + sub-info + filter-bar
-  const stickyH = document.querySelector('.channel-banner')?.offsetHeight ?? 0;
-  const subH    = document.querySelector('.sub-info')?.offsetHeight ?? 0;
-  const filterH = document.querySelector('.filter-bar')?.offsetHeight ?? 0;
-  const offset  = stickyH + subH + filterH + 8;
-  const top = sec.getBoundingClientRect().top + window.scrollY - offset;
+  // Only offset for the sticky banner — section title appears right below it
+  const bannerH = document.querySelector('.channel-banner')?.offsetHeight ?? 0;
+  const top = sec.getBoundingClientRect().top + window.scrollY - bannerH;
   window.scrollTo({ top, behavior: 'smooth' });
 }
 
