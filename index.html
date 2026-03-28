@@ -1367,14 +1367,19 @@ window.addEventListener('scroll', () => {
 loadVideos();
 
 // 백그라운드 복귀 시 데이터 갱신 (5분 이상 백그라운드였을 경우)
+// visibilitychange: Android / 데스크탑
+// pagehide / pageshow: iOS Safari / iPadOS PWA (WKWebView) 에서 더 신뢰성 있음
 let _hiddenAt = 0;
+function _onAppHidden()  { _hiddenAt = Date.now(); }
+function _onAppVisible() {
+  if (_hiddenAt > 0 && Date.now() - _hiddenAt > 5 * 60 * 1000) loadVideos();
+  _hiddenAt = 0;
+}
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') {
-    _hiddenAt = Date.now();
-  } else if (_hiddenAt > 0 && Date.now() - _hiddenAt > 5 * 60 * 1000) {
-    loadVideos();
-  }
+  document.visibilityState === 'hidden' ? _onAppHidden() : _onAppVisible();
 });
+window.addEventListener('pagehide', _onAppHidden);
+window.addEventListener('pageshow', e => { if (e.persisted) _onAppVisible(); });
 </script>
 </body>
 </html>
