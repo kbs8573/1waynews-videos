@@ -1071,17 +1071,13 @@ function stopModalVideo() {
   const wrap = document.getElementById('vd-video-wrap');
   if (!wrap) return;
   document.getElementById('vd-iframe')?.remove();
-  document.getElementById('vd-video-grad')?.remove();
-  // 프리뷰 종료 안내
-  const ended = document.createElement('div');
-  ended.id = 'vd-ended';
-  ended.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:#fff;font-size:14px;';
+  // 썸네일로 대체
   const v = window._heroVideo;
-  ended.innerHTML = `
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.7"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <span style="opacity:0.8">프리뷰가 종료되었습니다</span>
-    ${v ? `<a href="${esc(v.url)}" target="_blank" rel="noopener" style="padding:8px 20px;background:#e50914;border-radius:4px;color:#fff;text-decoration:none;font-size:13px;font-weight:600;">YouTube에서 계속 보기</a>` : ''}`;
-  wrap.appendChild(ended);
+  if (v) {
+    wrap.style.backgroundImage    = `url('${v.thumb}')`;
+    wrap.style.backgroundSize     = 'cover';
+    wrap.style.backgroundPosition = 'center';
+  }
   // 소리 버튼 숨김
   const unmuteBtn = document.getElementById('vd-unmute');
   if (unmuteBtn) unmuteBtn.style.display = 'none';
