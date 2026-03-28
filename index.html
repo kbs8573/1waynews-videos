@@ -76,10 +76,21 @@
     }
     #nf-nav.solid { background: #141414; }
     .nf-logo {
-      display: flex; align-items: center;
-      cursor: default; user-select: none;
+      display: flex; flex-direction: column; justify-content: center;
+      cursor: default; user-select: none; line-height: 1;
     }
-    .nf-logo img { height: 40px; width: auto; object-fit: contain; }
+    .nf-logo-sub {
+      font-size: 9px; font-weight: 800; letter-spacing: 2.5px;
+      color: rgba(255,255,255,.5); text-transform: uppercase;
+    }
+    .nf-logo-main {
+      font-size: 24px; font-weight: 900; letter-spacing: -1px;
+      color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,.6);
+    }
+    .nf-logo-fact {
+      font-size: 9px; font-weight: 800; letter-spacing: 2.5px;
+      color: #e50914; text-transform: uppercase; text-align: right;
+    }
     .nf-nav-right { display: flex; align-items: center; gap: 12px; }
     .upd-time { font-size: 11px; color: rgba(255,255,255,.4); }
     .btn-refresh {
@@ -430,7 +441,11 @@
 
 <!-- ── Netflix Nav ── -->
 <nav id="nf-nav">
-  <div class="nf-logo"><img src="/icon-512.png" alt="전한길뉴스" /></div>
+  <div class="nf-logo">
+    <span class="nf-logo-sub">Be Honest</span>
+    <span class="nf-logo-main">전한길뉴스</span>
+    <span class="nf-logo-fact">Fact First</span>
+  </div>
   <div class="nf-nav-right">
     <span class="upd-time" id="upd-time"></span>
     <button class="btn-refresh" onclick="loadVideos()" title="새로고침">
