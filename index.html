@@ -388,6 +388,14 @@
       background: linear-gradient(to top, #181818 0%, transparent 100%);
       pointer-events: none;
     }
+    #vd-replay {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      padding: 10px 24px; border-radius: 4px; z-index: 2;
+      background: rgba(0,0,0,.65); border: 2px solid rgba(255,255,255,.55);
+      color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background .2s; white-space: nowrap;
+    }
+    #vd-replay:hover { background: rgba(255,255,255,.18); }
     #vd-body { padding: 20px 28px 28px; }
     #vd-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
     #vd-ch {
@@ -1082,6 +1090,38 @@ function stopModalVideo() {
   // 소리 버튼 숨김
   const unmuteBtn = document.getElementById('vd-unmute');
   if (unmuteBtn) unmuteBtn.style.display = 'none';
+  // 다시보기 버튼 표시
+  if (!document.getElementById('vd-replay')) {
+    const btn = document.createElement('button');
+    btn.id = 'vd-replay';
+    btn.textContent = '↺ 다시 보기';
+    btn.onclick = modalReplay;
+    wrap.appendChild(btn);
+  }
+}
+
+function modalReplay() {
+  const v = window._heroVideo;
+  if (!v) return;
+  const wrap = document.getElementById('vd-video-wrap');
+  if (!wrap) return;
+  document.getElementById('vd-replay')?.remove();
+  wrap.style.backgroundImage = '';
+  // iframe 재생성 (처음부터)
+  const iframe = document.createElement('iframe');
+  iframe.id = 'vd-iframe';
+  iframe.src = `https://www.youtube.com/embed/${esc(v.id)}?autoplay=1&mute=1&controls=0&disablekb=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&playsinline=1`;
+  iframe.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;pointer-events:none;';
+  iframe.allow = 'autoplay; encrypted-media';
+  iframe.allowFullscreen = true;
+  wrap.insertBefore(iframe, wrap.firstChild);
+  // 소리 버튼 복원
+  const unmuteBtn = document.getElementById('vd-unmute');
+  if (unmuteBtn) unmuteBtn.style.display = '';
+  modalMuted = true;
+  applyModalMute(true);
+  clearTimeout(modalTimer);
+  modalTimer = setTimeout(stopModalVideo, 60000);
 }
 
 function applyModalMute(muted) {
@@ -1109,7 +1149,7 @@ function closeVideoModal() {
     // 히어로가 정지된 상태 → 재시작 후 소리 상태 적용
     initHero(window._heroVideo);
     // initHero가 muted=true로 초기화하므로, 원하는 상태로 덮어씀
-    setTimeout(() => setHeroMuted(targetMuted), 200);
+    setTimeout(() => setHeroMuted(targetMuted), 800);
   } else {
     // 히어로가 재생 중이었으면 소리 상태만 인수
     setHeroMuted(targetMuted);
