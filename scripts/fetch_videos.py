@@ -249,6 +249,15 @@ def main():
         else:
             merged[vid] = v
 
+    # 3-b. 구독자 전용(멤버십) 콘텐츠 제외
+    # RSS에만 있고(ytInitialData 공개 목록에 없음) views == 0 인 경우
+    yt_ids = set(yt_items.keys())
+    excluded = [vid for vid, v in merged.items()
+                if v.get('views') == 0 and vid not in yt_ids]
+    for vid in excluded:
+        print(f'   ⛔ 구독자 전용 제외: {merged[vid]["title"][:40]}')
+        del merged[vid]
+
     print(f'   Merged total: {len(merged)} unique items')
 
     # 4. Shorts 감지

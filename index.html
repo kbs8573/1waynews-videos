@@ -153,38 +153,27 @@
     main { padding: 4px 0 60px; }
 
     /* ── Time section ── */
-    .t-section { margin-bottom: 16px; }
+    .t-section { margin-bottom: 8px; }
     .t-head {
-      display: flex; align-items: center; gap: 14px;
-      padding: 14px 20px 14px 0;
-      margin: 24px 24px 4px;
-      border-radius: 10px;
-      background: var(--surface);
-      border-left: 4px solid transparent;
-      position: relative;
-      overflow: hidden;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 36px 24px 10px;
     }
-    .t-head::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(90deg, rgba(255,255,255,.04) 0%, transparent 60%);
-      pointer-events: none;
+    .t-head-left { display: flex; align-items: center; gap: 10px; }
+    .t-dot { display: none; }
+    .t-name {
+      font-size: 22px; font-weight: 700; color: #e5e5e5;
+      letter-spacing: -.4px;
     }
-    .ts-0 .t-head { border-left-color: var(--c0); }
-    .ts-1 .t-head { border-left-color: var(--c1); }
-    .ts-3 .t-head { border-left-color: var(--c3); }
-    .ts-4 .t-head { border-left-color: var(--c4); }
-    .t-dot {
-      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-      margin-left: 18px;
+    .t-badge {
+      font-size: 10px; font-weight: 800; letter-spacing: .7px;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+      align-self: center; line-height: 1;
     }
-    .ts-0 .t-dot{background:var(--c0);box-shadow:0 0 8px var(--c0)}
-    .ts-1 .t-dot{background:var(--c1);box-shadow:0 0 8px var(--c1)}
-    .ts-3 .t-dot{background:var(--c3);box-shadow:0 0 8px var(--c3)}
-    .ts-4 .t-dot{background:var(--c4)}
-    .t-name { font-size: 20px; font-weight: 900; letter-spacing: -.3px; }
-    .ts-0 .t-name{color:var(--c0)} .ts-1 .t-name{color:var(--c1)}
-    .ts-3 .t-name{color:var(--c3)} .ts-4 .t-name{color:var(--c4)}
-    .t-cnt { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .ts-0 .t-badge { background: rgba(74,222,128,.12);  color: var(--c0); border: 1px solid rgba(74,222,128,.25); }
+    .ts-1 .t-badge { background: rgba(96,165,250,.12);  color: var(--c1); border: 1px solid rgba(96,165,250,.25); }
+    .ts-3 .t-badge { background: rgba(251,146,60,.12);  color: var(--c3); border: 1px solid rgba(251,146,60,.25); }
+    .ts-4 .t-badge { background: rgba(161,161,170,.12); color: var(--c4); border: 1px solid rgba(161,161,170,.25); }
+    .t-cnt { font-size: 13px; color: var(--muted); }
     .t-divider { display: none; }
 
     /* ── Rail wrapper ── */
@@ -442,10 +431,10 @@ const PROXIES = [
 ];
 
 const CATS = [
-  { id:0, label:'오늘',        desc:'오늘 업로드',    cls:'ts-0' },
-  { id:1, label:'어제',        desc:'어제 업로드',    cls:'ts-1' },
-  { id:2, label:'이번 주',     desc:'2~7일 전 업로드', cls:'ts-3' },
-  { id:3, label:'일주일 이상 지난 영상들', desc:'7일 이전 업로드', cls:'ts-4' },
+  { id:0, label:'오늘',        badge:'TODAY',     cls:'ts-0' },
+  { id:1, label:'어제',        badge:'YESTERDAY', cls:'ts-1' },
+  { id:2, label:'이번 주',     badge:'THIS WEEK', cls:'ts-3' },
+  { id:3, label:'일주일 이상 지난 영상들', badge:'OLDER', cls:'ts-4' },
 ];
 
 // 지난주 이상: 처음 3개만, 이후 lazy load
@@ -605,11 +594,11 @@ function render(videos) {
     const head = document.createElement('div');
     head.className = 't-head';
     head.innerHTML = `
-      <span class="t-dot"></span>
-      <span style="display:flex;flex-direction:column;gap:2px">
+      <div class="t-head-left">
         <span class="t-name">${cat.label}</span>
-        <span class="t-cnt">${totals[i]}개 · ${cat.desc}</span>
-      </span>`;
+        <span class="t-badge">${cat.badge}</span>
+      </div>
+      <span class="t-cnt">${totals[i]}개</span>`;
     sec.appendChild(head);
 
     if (i === LAZY_CAT) {
