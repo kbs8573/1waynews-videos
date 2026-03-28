@@ -1073,9 +1073,18 @@ function vdToggleMute() {
 }
 
 function closeVideoModal() {
-  // 모달의 소리 상태를 히어로가 인수
-  setHeroMuted(modalMuted);
+  const targetMuted = modalMuted;  // 모달 닫힐 때 소리 상태 저장
   document.getElementById('vd-overlay')?.remove();
+
+  if (!document.getElementById('hero-iframe') && window._heroVideo) {
+    // 히어로가 정지된 상태 → 재시작 후 소리 상태 적용
+    initHero(window._heroVideo);
+    // initHero가 muted=true로 초기화하므로, 원하는 상태로 덮어씀
+    setTimeout(() => setHeroMuted(targetMuted), 200);
+  } else {
+    // 히어로가 재생 중이었으면 소리 상태만 인수
+    setHeroMuted(targetMuted);
+  }
 }
 
 function showYtPopup() {
