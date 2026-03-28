@@ -97,12 +97,10 @@
     }
     .chip .cnt { background: rgba(255,255,255,.18); border-radius: 100px; padding: 1px 6px; font-size: 10px; }
     .chip.active { border-color: currentColor; }
-    .c-all { background: rgba(239,68,68,.15); color: #f87171; }
-    .c-0{background:var(--c0-bg);color:var(--c0)}
-    .c-1{background:var(--c1-bg);color:var(--c1)}
-    .c-2{background:var(--c2-bg);color:var(--c2)}
-    .c-3{background:var(--c3-bg);color:var(--c3)}
-    .c-4{background:var(--c4-bg);color:var(--c4)}
+    .c-all   { background: rgba(229,9,20,.15);   color: #e50914; }
+    .c-live  { background: rgba(220,38,38,.15);  color: #f87171; }
+    .c-video { background: rgba(96,165,250,.15); color: #60a5fa; }
+    .c-short { background: rgba(251,146,60,.15); color: #fb923c; }
 
     /* ── Main ── */
     main { padding: 4px 0 60px; }
@@ -308,11 +306,9 @@
   </div>
   <div class="filter-bar">
     <div class="chip c-all active" onclick="setFilter(this,'all')">📺 전체 <span class="cnt" id="cnt-all">0</span></div>
-    <div class="chip c-0" onclick="setFilter(this,0)">🟢 오늘 <span class="cnt" id="cnt-0">0</span></div>
-    <div class="chip c-1" onclick="setFilter(this,1)">🔵 어제 <span class="cnt" id="cnt-1">0</span></div>
-    <div class="chip c-2" onclick="setFilter(this,2)">🌸 3일 전 <span class="cnt" id="cnt-2">0</span></div>
-    <div class="chip c-3" onclick="setFilter(this,3)">🟠 이번 주 <span class="cnt" id="cnt-3">0</span></div>
-    <div class="chip c-4" onclick="setFilter(this,4)">🗂 일주일 이상 <span class="cnt" id="cnt-4">0</span></div>
+    <div class="chip c-live"  onclick="setFilter(this,'live')">🔴 라이브 <span class="cnt" id="cnt-live">0</span></div>
+    <div class="chip c-video" onclick="setFilter(this,'video')">▶ 동영상 <span class="cnt" id="cnt-video">0</span></div>
+    <div class="chip c-short" onclick="setFilter(this,'short')">⚡ Shorts <span class="cnt" id="cnt-short">0</span></div>
   </div>
   <main id="main-content"></main>
 </div>
@@ -469,8 +465,10 @@ function render(videos) {
   });
 
   const totals = buckets.map(b => b.lives.length + b.videos.length + b.shorts.length);
-  setTxt('cnt-all', videos.length);
-  totals.forEach((n, i) => setTxt(`cnt-${i}`, n));
+  setTxt('cnt-all',   videos.length);
+  setTxt('cnt-live',  buckets.reduce((s, b) => s + b.lives.length,  0));
+  setTxt('cnt-video', buckets.reduce((s, b) => s + b.videos.length, 0));
+  setTxt('cnt-short', buckets.reduce((s, b) => s + b.shorts.length, 0));
 
   // Init lazy store
   lazyStore.live   = buckets[LAZY_CAT].lives;
@@ -531,6 +529,7 @@ function render(videos) {
 function buildRail(items, type, catIdx, isLazy) {
   const wrap = document.createElement('div');
   wrap.className = 'rail-wrap';
+  wrap.dataset.type = type;
 
   const isShort = type === 'short';
   const isLive  = type === 'live';
@@ -711,13 +710,20 @@ function cardHTML(v) {
 function setFilter(el, f) {
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  if (f === 'all') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-  const sec = document.getElementById(`sec-${f}`);
-  if (!sec) return;
-  // Only offset for the sticky banner — section title appears right below it
-  const bannerH = document.querySelector('.channel-banner')?.offsetHeight ?? 0;
-  const top = sec.getBoundingClientRect().top + window.scrollY - bannerH;
-  window.scrollTo({ top, behavior: 'smooth' });
+
+  // Show/hide rail-wraps by type
+  document.querySelectorAll('.rail-wrap').forEach(w => {
+    w.style.display = (f === 'all' || w.dataset.type === f) ? '' : 'none';
+  });
+
+  // Hide date sections that have no visible rails
+  document.querySelectorAll('.t-section').forEach(sec => {
+    const hasVisible = [...sec.querySelectorAll('.rail-wrap')]
+      .some(w => w.style.display !== 'none');
+    sec.style.display = hasVisible ? '' : 'none';
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ── Helpers ──────────────────────────────────────────────
