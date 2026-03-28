@@ -1308,50 +1308,60 @@ window.addEventListener('scroll', () => {
   document.getElementById('nf-nav').classList.toggle('solid', window.scrollY > 20);
 }, { passive: true });
 
-// 히어로 섹션 스크롤 아웃 → 일시정지 / 스크롤 인 → 이어서 재생
-// 히어로 재생 재개 공통 함수
+// ── 히어로 스크롤 일시정지 / 재개 ──────────────────────────────────────────
+// iOS Safari는 scroll/setTimeout 콜백에서 새로 생성한 iframe의 autoplay를 차단.
+// 따라서 scroll-out 시 iframe을 제거하지 않고 pauseVideo + 숨김,
+// scroll-in 시 playVideo + 표시하여 재개함 (iframe 재생성 없음).
+
+function pauseHeroForScroll() {
+  const iframe = document.getElementById('hero-iframe');
+  if (!iframe) return;
+  heroPausedAt = heroStartedAt ? Math.floor((Date.now() - heroStartedAt) / 1000) : 0;
+  clearTimeout(heroTimer);
+  iframe.contentWindow?.postMessage(JSON.stringify({event:'command', func:'pauseVideo', args:[]}), '*');
+  iframe.contentWindow?.postMessage(JSON.stringify({event:'command', func:'mute',        args:[]}), '*');
+  iframe.style.opacity = '0';
+  document.getElementById('hero-thumb').style.opacity = '1';
+}
+
 let _heroResumeTimer = null;
 function scheduleHeroResume() {
   clearTimeout(_heroResumeTimer);
   _heroResumeTimer = setTimeout(() => {
-    if (heroPausedAt === null || !window._heroVideo || document.getElementById('hero-iframe')) return;
+    if (heroPausedAt === null || !window._heroVideo) return;
+    const iframe = document.getElementById('hero-iframe');
+    if (!iframe) return; // stopHeroVideo()가 이미 호출된 상태
     const elapsed   = heroPausedAt;
     heroPausedAt    = null;
     const remaining = 60 - elapsed;
     if (remaining <= 0) { stopHeroVideo(); return; }
     heroStartedAt = Date.now() - elapsed * 1000;
-    const iframe  = createHeroIframe(window._heroVideo.id, elapsed);
+    iframe.contentWindow?.postMessage(JSON.stringify({event:'command', func:'playVideo', args:[]}), '*');
     iframe.style.opacity = '1';
     document.getElementById('hero-thumb').style.opacity = '0.3';
     clearTimeout(heroTimer);
     heroTimer = setTimeout(stopHeroVideo, remaining * 1000);
-    if (!heroMuted) setTimeout(() => setHeroMuted(false), 500);
+    if (!heroMuted) setTimeout(() => setHeroMuted(false), 300);
   }, 300);
 }
 
-// IntersectionObserver: 스크롤 아웃 → 일시정지
+// IntersectionObserver: 스크롤 아웃 감지 (Android / 데스크탑)
 new IntersectionObserver(entries => {
   const isVisible = entries[0].isIntersecting;
   if (!isVisible) {
     clearTimeout(_heroResumeTimer);
-    const iframe = document.getElementById('hero-iframe');
-    if (iframe) {
-      heroPausedAt = heroStartedAt ? Math.floor((Date.now() - heroStartedAt) / 1000) : 0;
-      clearTimeout(heroTimer);
-      iframe.remove();
-      document.getElementById('hero-thumb').style.opacity = '1';
-    }
+    pauseHeroForScroll();
   } else {
     scheduleHeroResume();
   }
 }, { threshold: 0.1 }).observe(document.getElementById('hero'));
 
-// scroll fallback: iOS Safari는 최상단 복귀 시 IO가 발화하지 않는 WebKit 버그 존재
+// scroll 이벤트 fallback: iOS Safari는 최상단 복귀 시 IO가 발화하지 않는 버그 존재
 window.addEventListener('scroll', () => {
   if (heroPausedAt === null) return;
   const rect = document.getElementById('hero').getBoundingClientRect();
-  // 히어로가 뷰포트에 20% 이상 보이면 재개 시도
   if (rect.bottom > window.innerHeight * 0.2) scheduleHeroResume();
+  else { clearTimeout(_heroResumeTimer); }
 }, { passive: true });
 
 loadVideos();
