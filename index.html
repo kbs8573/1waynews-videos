@@ -1309,8 +1309,11 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // 히어로 섹션 스크롤 아웃 → 일시정지 / 스크롤 인 → 이어서 재생
+// 모바일에서 주소창 토글로 인한 오발화 방지를 위해 복귀 시 300ms 디바운스 적용
+let _heroResumeTimer = null;
 new IntersectionObserver(entries => {
   const isVisible = entries[0].isIntersecting;
+  clearTimeout(_heroResumeTimer);
   if (!isVisible) {
     const iframe = document.getElementById('hero-iframe');
     if (iframe) {
@@ -1321,20 +1324,22 @@ new IntersectionObserver(entries => {
       document.getElementById('hero-thumb').style.opacity = '1';
     }
   } else {
-    // 스크롤 복귀 — 일시정지 상태였으면 이어서 재생
-    if (heroPausedAt !== null && window._heroVideo && !document.getElementById('hero-iframe')) {
-      const elapsed   = heroPausedAt;
-      heroPausedAt    = null;
-      const remaining = 60 - elapsed;
-      if (remaining <= 0) { stopHeroVideo(); return; }
-      heroStartedAt = Date.now() - elapsed * 1000;
-      const iframe  = createHeroIframe(window._heroVideo.id, elapsed);
-      iframe.style.opacity = '1';
-      document.getElementById('hero-thumb').style.opacity = '0.3';
-      clearTimeout(heroTimer);
-      heroTimer = setTimeout(stopHeroVideo, remaining * 1000);
-      if (!heroMuted) setTimeout(() => setHeroMuted(false), 500);
-    }
+    // 스크롤 복귀 — 300ms 후에도 여전히 보이면 이어서 재생
+    _heroResumeTimer = setTimeout(() => {
+      if (heroPausedAt !== null && window._heroVideo && !document.getElementById('hero-iframe')) {
+        const elapsed   = heroPausedAt;
+        heroPausedAt    = null;
+        const remaining = 60 - elapsed;
+        if (remaining <= 0) { stopHeroVideo(); return; }
+        heroStartedAt = Date.now() - elapsed * 1000;
+        const iframe  = createHeroIframe(window._heroVideo.id, elapsed);
+        iframe.style.opacity = '1';
+        document.getElementById('hero-thumb').style.opacity = '0.3';
+        clearTimeout(heroTimer);
+        heroTimer = setTimeout(stopHeroVideo, remaining * 1000);
+        if (!heroMuted) setTimeout(() => setHeroMuted(false), 500);
+      }
+    }, 300);
   }
 }, { threshold: 0.1 }).observe(document.getElementById('hero'));
 
