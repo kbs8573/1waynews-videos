@@ -1162,23 +1162,25 @@ setTimeout(dismissIntro, 3000);
 // ── Hero ─────────────────────────────────────────────────
 let heroMuted = true;
 let heroTimer = null;
-let heroStartedAt = 0;  // 히어로 재생 시작 시각 (elapsed 계산용)
+let heroStartedAt = 0;   // 히어로 재생 시작 시각 (elapsed 계산용)
+let heroPausedAt  = null; // 스크롤 아웃으로 일시정지된 경과 시간(초), null=정지 아님
 const HERO_IFRAME_STYLE = 'position:absolute;top:-60px;left:-10%;width:120%;height:calc(100% + 120px);border:none;pointer-events:none;transition:opacity 1s ease;';
 
-function createHeroIframe(videoId) {
-  // 기존 iframe 완전 제거 (src 변경 없이 DOM에서 삭제 → 히스토리 영향 없음)
+function createHeroIframe(videoId, startSec = 0) {
   document.getElementById('hero-iframe')?.remove();
   const iframe = document.createElement('iframe');
   iframe.id    = 'hero-iframe';
   iframe.style.cssText = HERO_IFRAME_STYLE;
   iframe.allow = 'autoplay; encrypted-media';
   iframe.allowFullscreen = true;
-  iframe.src   = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1`;
+  const start  = startSec > 0 ? `&start=${Math.floor(startSec)}` : '';
+  iframe.src   = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1${start}`;
   document.getElementById('hero').insertBefore(iframe, document.getElementById('hero-gradient'));
   return iframe;
 }
 
 function stopHeroVideo() {
+  heroPausedAt = null;  // 명시적 정지 — 스크롤 복귀 시 재개 안 함
   clearTimeout(heroTimer);
   document.getElementById('hero-iframe')?.remove();   // DOM 제거 → 즉시 재생 중단, 히스토리 무영향
   document.getElementById('hero-thumb').style.opacity  = '1';
@@ -1201,6 +1203,7 @@ function initHero(v) {
   document.getElementById('hero-ico-mute').style.display  = '';
   document.getElementById('hero-ico-sound').style.display = 'none';
 
+  heroPausedAt  = null;
   heroStartedAt = Date.now();
   const iframe = createHeroIframe(v.id);
   iframe.style.opacity = '1';
@@ -1236,10 +1239,33 @@ window.addEventListener('scroll', () => {
   document.getElementById('nf-nav').classList.toggle('solid', window.scrollY > 20);
 }, { passive: true });
 
-// 히어로 섹션 스크롤 아웃 시 재생 중단
+// 히어로 섹션 스크롤 아웃 → 일시정지 / 스크롤 인 → 이어서 재생
 new IntersectionObserver(entries => {
-  if (!entries[0].isIntersecting && document.getElementById('hero-iframe')) {
-    stopHeroVideo();
+  const isVisible = entries[0].isIntersecting;
+  if (!isVisible) {
+    const iframe = document.getElementById('hero-iframe');
+    if (iframe) {
+      // 경과 시간 저장 후 iframe 제거 (다시보기 버튼 표시 안 함)
+      heroPausedAt = heroStartedAt ? Math.floor((Date.now() - heroStartedAt) / 1000) : 0;
+      clearTimeout(heroTimer);
+      iframe.remove();
+      document.getElementById('hero-thumb').style.opacity = '1';
+    }
+  } else {
+    // 스크롤 복귀 — 일시정지 상태였으면 이어서 재생
+    if (heroPausedAt !== null && window._heroVideo && !document.getElementById('hero-iframe')) {
+      const elapsed   = heroPausedAt;
+      heroPausedAt    = null;
+      const remaining = 60 - elapsed;
+      if (remaining <= 0) { stopHeroVideo(); return; }
+      heroStartedAt = Date.now() - elapsed * 1000;
+      const iframe  = createHeroIframe(window._heroVideo.id, elapsed);
+      iframe.style.opacity = '1';
+      document.getElementById('hero-thumb').style.opacity = '0.3';
+      clearTimeout(heroTimer);
+      heroTimer = setTimeout(stopHeroVideo, remaining * 1000);
+      if (!heroMuted) setTimeout(() => setHeroMuted(false), 500);
+    }
   }
 }, { threshold: 0.1 }).observe(document.getElementById('hero'));
 
