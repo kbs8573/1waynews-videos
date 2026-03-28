@@ -1042,21 +1042,11 @@ function showVideoModal(v) {
     </div>`;
   overlay.addEventListener('click', e => { if (e.target === overlay) closeVideoModal(); });
   document.body.appendChild(overlay);
+  // 모달 열리면 히어로 음소거 상태 즉시 동기화
+  // iframe 로드 후 postMessage가 전달되도록 약간 지연
+  setTimeout(() => setSoundMuted(heroMuted), 800);
 }
-function vdToggleMute(btn) {
-  const iframe = document.getElementById('vd-iframe');
-  const muted  = !btn.classList.contains('on');
-  if (muted) {
-    // 소리 켜기
-    iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'unMute', args:[] }), '*');
-    btn.classList.add('on');
-    btn.lastChild.textContent = ' 소리 끄기';
-  } else {
-    iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'mute', args:[] }), '*');
-    btn.classList.remove('on');
-    btn.lastChild.textContent = ' 소리 켜기';
-  }
-}
+function vdToggleMute() { setSoundMuted(!heroMuted); }
 function closeVideoModal() {
   document.getElementById('vd-overlay')?.remove();
 }
@@ -1195,13 +1185,29 @@ function heroReplay() {
   initHero(v);
 }
 
-function heroToggleMute() {
-  const iframe = document.getElementById('hero-iframe');
-  if (!iframe) return;
-  heroMuted = !heroMuted;
-  iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func: heroMuted ? 'mute' : 'unMute', args:[] }), '*');
-  document.getElementById('hero-ico-mute').style.display  = heroMuted ? '' : 'none';
-  document.getElementById('hero-ico-sound').style.display = heroMuted ? 'none' : '';
+function heroToggleMute() { setSoundMuted(!heroMuted); }
+
+// ── 히어로 + 모달 소리 상태 통합 제어 ────────────────────
+function setSoundMuted(muted) {
+  heroMuted = muted;
+  const cmd = muted ? 'mute' : 'unMute';
+
+  // 히어로 iframe
+  document.getElementById('hero-iframe')
+    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func:cmd, args:[] }), '*');
+  // 히어로 버튼 UI
+  document.getElementById('hero-ico-mute').style.display  = muted ? '' : 'none';
+  document.getElementById('hero-ico-sound').style.display = muted ? 'none' : '';
+
+  // 모달 iframe
+  document.getElementById('vd-iframe')
+    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func:cmd, args:[] }), '*');
+  // 모달 버튼 UI
+  const vdBtn = document.getElementById('vd-unmute');
+  if (vdBtn) {
+    vdBtn.classList.toggle('on', !muted);
+    vdBtn.lastChild.textContent = muted ? ' 소리 켜기' : ' 소리 끄기';
+  }
 }
 
 // Nav 스크롤 시 배경 solid
