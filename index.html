@@ -43,11 +43,11 @@
       display: flex; align-items: center; justify-content: center;
       transition: opacity .6s ease;
     }
-    #intro-overlay iframe { width: 100%; height: 100%; border: none; pointer-events: none; }
+    #intro-overlay video { width: 100%; height: 100%; border: none; pointer-events: none; object-fit: cover; }
     #intro-tl-cover { position: absolute; top: 0; left: 0; width: 220px; height: 50px; background: #000; z-index: 1; }
     #intro-progress {
       position: absolute; bottom: 0; left: 0; height: 3px; background: #e50914;
-      animation: progress-bar 3s linear forwards;
+      animation: progress-bar 10s linear forwards;
     }
     @keyframes progress-bar { from { width: 0 } to { width: 100% } }
     #intro-unmute {
@@ -508,9 +508,7 @@
 
 <!-- ── Intro Overlay ── -->
 <div id="intro-overlay">
-  <iframe id="intro-iframe"
-    src="https://www.youtube-nocookie.com/embed/0JyWrRmsjss?start=34&autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&playsinline=1&enablejsapi=1"
-    allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  <video id="intro-video" src="assets/intro.mov" autoplay muted playsinline></video>
   <div id="intro-tl-cover"></div>
   <div id="intro-progress"></div>
   <button id="intro-unmute" onclick="introToggleMute()" title="소리 켜기">
@@ -1217,10 +1215,10 @@ function esc(s) {
 // ── Intro ────────────────────────────────────────────────
 let introMuted = true;
 function introToggleMute() {
-  const iframe = document.getElementById('intro-iframe');
-  if (!iframe) return;
+  const video = document.getElementById('intro-video');
+  if (!video) return;
   introMuted = !introMuted;
-  iframe.contentWindow.postMessage(JSON.stringify({ event:'command', func: introMuted ? 'mute' : 'unMute', args:[] }), '*');
+  video.muted = introMuted;
   document.getElementById('ico-mute').style.display  = introMuted ? '' : 'none';
   document.getElementById('ico-sound').style.display = introMuted ? 'none' : '';
 }
@@ -1230,7 +1228,12 @@ function dismissIntro() {
   overlay.style.opacity = '0';
   setTimeout(() => overlay.remove(), 650);
 }
-setTimeout(dismissIntro, 3000);
+// 영상 종료 시 자동 dismiss (또는 최대 12초 후)
+const _introVideo = document.getElementById('intro-video');
+if (_introVideo) {
+  _introVideo.onended = dismissIntro;
+}
+setTimeout(dismissIntro, 12000);
 
 // ── Hero ─────────────────────────────────────────────────
 let heroMuted = true;
