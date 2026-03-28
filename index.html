@@ -418,6 +418,10 @@
     #vd-unmute:hover { background: rgba(109,109,110,.5); }
     #vd-unmute.on svg.ico-mute { display: none; }
     #vd-unmute:not(.on) svg.ico-sound { display: none; }
+    @media (max-width: 640px) {
+      .vd-btn-text { display: none; }
+      #vd-unmute, #vd-yt-btn { padding: 10px 14px; }
+    }
 
     /* ── YouTube redirect popup ── */
     #yt-popup-overlay {
@@ -999,11 +1003,17 @@ function setTxt(id, v) { const el = document.getElementById(id); if (el) el.text
 function fmtTime(d) {
   return `업데이트: ${d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
 }
+let modalMuted = true;  // 모달 독립 음소거 상태
+
 function showVideoModal(v) {
   if (!v || document.getElementById('vd-overlay')) return;
-  // 히어로 재생 경과 시간(초) → 모달에서 이어 재생
   const elapsed = heroStartedAt ? Math.floor((Date.now() - heroStartedAt) / 1000) : 0;
   const start   = Math.max(0, elapsed);
+
+  // 히어로 음소거 → 모달이 소리를 담당
+  const heroWasUnmuted = !heroMuted;
+  setHeroMuted(true);
+  modalMuted = !heroWasUnmuted;  // 히어로가 켜져 있었으면 모달도 켜짐
 
   const overlay = document.createElement('div');
   overlay.id = 'vd-overlay';
@@ -1024,30 +1034,47 @@ function showVideoModal(v) {
         <div id="vd-meta"><span id="vd-ch">${esc(v.channelLabel || '')}</span></div>
         <div id="vd-title">${esc(v.title || '')}</div>
         <div id="vd-actions">
-          <button id="vd-unmute" onclick="vdToggleMute(this)">
+          <button id="vd-unmute" onclick="vdToggleMute()">
             <svg class="ico-mute" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.18l2.45 2.45c.05-.2.05-.42.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.796 8.796 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06A8.99 8.99 0 0 0 17.73 19l1.98 2L21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
             </svg>
             <svg class="ico-sound" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4zM14 3.23v2.06A6.5 6.5 0 0 1 14 20.71v2.06c3.88-.99 6.71-4.53 6.71-8.77S17.88 4.22 14 3.23z"/>
             </svg>
-            소리 켜기
+            <span class="vd-btn-text">소리 켜기</span>
           </button>
           <a id="vd-yt-btn" href="${esc(v.url || '#')}" target="_blank" rel="noopener">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-            YouTube에서 보기
+            <span class="vd-btn-text">YouTube에서 보기</span>
           </a>
         </div>
       </div>
     </div>`;
   overlay.addEventListener('click', e => { if (e.target === overlay) closeVideoModal(); });
   document.body.appendChild(overlay);
-  // 모달 열리면 히어로 음소거 상태 즉시 동기화
-  // iframe 로드 후 postMessage가 전달되도록 약간 지연
-  setTimeout(() => setSoundMuted(heroMuted), 800);
+  // iframe 로드 후 모달 소리 상태 적용
+  setTimeout(() => applyModalMute(modalMuted), 800);
 }
-function vdToggleMute() { setSoundMuted(!heroMuted); }
+
+function applyModalMute(muted) {
+  const cmd = muted ? 'mute' : 'unMute';
+  document.getElementById('vd-iframe')
+    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func:cmd, args:[] }), '*');
+  const btn = document.getElementById('vd-unmute');
+  if (btn) {
+    btn.classList.toggle('on', !muted);
+    btn.querySelector('.vd-btn-text').textContent = muted ? '소리 켜기' : '소리 끄기';
+  }
+}
+
+function vdToggleMute() {
+  modalMuted = !modalMuted;
+  applyModalMute(modalMuted);
+}
+
 function closeVideoModal() {
+  // 모달의 소리 상태를 히어로가 인수
+  setHeroMuted(modalMuted);
   document.getElementById('vd-overlay')?.remove();
 }
 
@@ -1185,29 +1212,14 @@ function heroReplay() {
   initHero(v);
 }
 
-function heroToggleMute() { setSoundMuted(!heroMuted); }
+function heroToggleMute() { setHeroMuted(!heroMuted); }
 
-// ── 히어로 + 모달 소리 상태 통합 제어 ────────────────────
-function setSoundMuted(muted) {
+function setHeroMuted(muted) {
   heroMuted = muted;
-  const cmd = muted ? 'mute' : 'unMute';
-
-  // 히어로 iframe
   document.getElementById('hero-iframe')
-    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func:cmd, args:[] }), '*');
-  // 히어로 버튼 UI
+    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func: muted ? 'mute' : 'unMute', args:[] }), '*');
   document.getElementById('hero-ico-mute').style.display  = muted ? '' : 'none';
   document.getElementById('hero-ico-sound').style.display = muted ? 'none' : '';
-
-  // 모달 iframe
-  document.getElementById('vd-iframe')
-    ?.contentWindow?.postMessage(JSON.stringify({ event:'command', func:cmd, args:[] }), '*');
-  // 모달 버튼 UI
-  const vdBtn = document.getElementById('vd-unmute');
-  if (vdBtn) {
-    vdBtn.classList.toggle('on', !muted);
-    vdBtn.lastChild.textContent = muted ? ' 소리 켜기' : ' 소리 끄기';
-  }
 }
 
 // Nav 스크롤 시 배경 solid
