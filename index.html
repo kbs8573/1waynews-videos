@@ -76,10 +76,10 @@
     }
     #nf-nav.solid { background: #141414; }
     .nf-logo {
-      font-size: 22px; font-weight: 900; letter-spacing: -1px; color: #e50914;
+      display: flex; align-items: center;
       cursor: default; user-select: none;
     }
-    .nf-logo em { color: #fff; font-style: normal; font-weight: 700; }
+    .nf-logo img { height: 40px; width: auto; object-fit: contain; }
     .nf-nav-right { display: flex; align-items: center; gap: 12px; }
     .upd-time { font-size: 11px; color: rgba(255,255,255,.4); }
     .btn-refresh {
@@ -428,7 +428,7 @@
 
 <!-- ── Netflix Nav ── -->
 <nav id="nf-nav">
-  <div class="nf-logo">전한길뉴스 <em>FACT FIRST</em></div>
+  <div class="nf-logo"><img src="/icon-512.png" alt="전한길뉴스" /></div>
   <div class="nf-nav-right">
     <span class="upd-time" id="upd-time"></span>
     <button class="btn-refresh" onclick="loadVideos()" title="새로고침">
