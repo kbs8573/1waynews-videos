@@ -1027,7 +1027,8 @@ function showVideoModal(v) {
       </button>
       <div id="vd-video-wrap">
         <iframe id="vd-iframe"
-          src="https://www.youtube.com/embed/${esc(v.id)}?autoplay=1&mute=1&start=${start}&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&playsinline=1"
+          src="https://www.youtube.com/embed/${esc(v.id)}?autoplay=1&mute=1&start=${start}&controls=0&disablekb=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&playsinline=1"
+          style="pointer-events:none"
           allow="autoplay; encrypted-media" allowfullscreen></iframe>
         <div id="vd-video-grad"></div>
       </div>
