@@ -153,23 +153,39 @@
     main { padding: 4px 0 60px; }
 
     /* ── Time section ── */
-    .t-section { margin-bottom: 4px; }
+    .t-section { margin-bottom: 16px; }
     .t-head {
-      display: flex; align-items: center; gap: 10px;
-      padding: 20px 24px 10px;
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 20px 14px 0;
+      margin: 24px 24px 4px;
+      border-radius: 10px;
+      background: var(--surface);
+      border-left: 4px solid transparent;
+      position: relative;
+      overflow: hidden;
     }
-    .t-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-    .ts-0 .t-dot{background:var(--c0);box-shadow:0 0 7px var(--c0)}
-    .ts-1 .t-dot{background:var(--c1);box-shadow:0 0 7px var(--c1)}
-    .ts-2 .t-dot{background:var(--c2);box-shadow:0 0 7px var(--c2)}
-    .ts-3 .t-dot{background:var(--c3);box-shadow:0 0 7px var(--c3)}
+    .t-head::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, rgba(255,255,255,.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .ts-0 .t-head { border-left-color: var(--c0); }
+    .ts-1 .t-head { border-left-color: var(--c1); }
+    .ts-3 .t-head { border-left-color: var(--c3); }
+    .ts-4 .t-head { border-left-color: var(--c4); }
+    .t-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      margin-left: 18px;
+    }
+    .ts-0 .t-dot{background:var(--c0);box-shadow:0 0 8px var(--c0)}
+    .ts-1 .t-dot{background:var(--c1);box-shadow:0 0 8px var(--c1)}
+    .ts-3 .t-dot{background:var(--c3);box-shadow:0 0 8px var(--c3)}
     .ts-4 .t-dot{background:var(--c4)}
-    .t-name { font-size: 17px; font-weight: 800; }
+    .t-name { font-size: 20px; font-weight: 900; letter-spacing: -.3px; }
     .ts-0 .t-name{color:var(--c0)} .ts-1 .t-name{color:var(--c1)}
-    .ts-2 .t-name{color:var(--c2)} .ts-3 .t-name{color:var(--c3)}
-    .ts-4 .t-name{color:var(--c4)}
-    .t-cnt { font-size: 12px; color: var(--muted); }
-    .t-divider { height: 1px; background: var(--border); margin: 8px 24px 0; opacity: .5; }
+    .ts-3 .t-name{color:var(--c3)} .ts-4 .t-name{color:var(--c4)}
+    .t-cnt { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .t-divider { display: none; }
 
     /* ── Rail wrapper ── */
     .rail-wrap { position: relative; margin-bottom: 2px; }
@@ -590,8 +606,10 @@ function render(videos) {
     head.className = 't-head';
     head.innerHTML = `
       <span class="t-dot"></span>
-      <span class="t-name">${cat.label}</span>
-      <span class="t-cnt">${totals[i]}개 · ${cat.desc}</span>`;
+      <span style="display:flex;flex-direction:column;gap:2px">
+        <span class="t-name">${cat.label}</span>
+        <span class="t-cnt">${totals[i]}개 · ${cat.desc}</span>
+      </span>`;
     sec.appendChild(head);
 
     if (i === LAZY_CAT) {
