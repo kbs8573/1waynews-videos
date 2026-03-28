@@ -1006,7 +1006,7 @@ function initHero(v) {
   heroTimer = setTimeout(() => {
     // 1분 후 — 완전 정지 후 썸네일 복원, 다시보기 버튼 표시
     iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'stopVideo', args:[] }), '*');
-    iframe.src = '';
+    iframe.src = 'about:blank';
     iframe.style.opacity = '0';
     thumb.style.opacity  = '1';
     document.getElementById('hero-mute').style.display   = 'none';
@@ -1045,7 +1045,7 @@ new IntersectionObserver(entries => {
     const iframe = document.getElementById('hero-iframe');
     if (iframe?.src) {
       iframe.contentWindow?.postMessage(JSON.stringify({ event:'command', func:'stopVideo', args:[] }), '*');
-      iframe.src = '';
+      iframe.src = 'about:blank';
       clearTimeout(heroTimer);
       document.getElementById('hero-thumb').style.opacity  = '1';
       document.getElementById('hero-mute').style.display   = 'none';
