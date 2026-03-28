@@ -350,6 +350,65 @@
     .load-more-card svg { width: 28px; height: 28px; }
     .load-more-card span { font-size: 12px; font-weight: 600; }
 
+    /* ── Video detail modal (Netflix style) ── */
+    #vd-overlay {
+      position: fixed; inset: 0; z-index: 8500;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: fadeIn .2s ease;
+    }
+    @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+    #vd-modal {
+      background: #181818; border-radius: 10px;
+      width: 100%; max-width: 860px;
+      max-height: 90vh; overflow-y: auto;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,.8);
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from { transform:translateY(30px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+    #vd-close {
+      position: absolute; top: 14px; right: 14px; z-index: 2;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #181818; border: none; color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    #vd-close:hover { background: #333; }
+    #vd-video-wrap {
+      position: relative; width: 100%; aspect-ratio: 16/9;
+      background: #000; border-radius: 10px 10px 0 0; overflow: hidden;
+    }
+    #vd-video-wrap iframe {
+      position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+    }
+    #vd-video-grad {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 35%;
+      background: linear-gradient(to top, #181818 0%, transparent 100%);
+      pointer-events: none;
+    }
+    #vd-body { padding: 20px 28px 28px; }
+    #vd-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    #vd-ch {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+      color: rgba(255,255,255,.5);
+    }
+    #vd-title {
+      font-size: clamp(16px, 2.2vw, 24px); font-weight: 800;
+      color: #fff; line-height: 1.3; margin-bottom: 18px;
+    }
+    #vd-actions { display: flex; gap: 10px; }
+    #vd-yt-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 4px;
+      background: #e50914; color: #fff;
+      font-size: 14px; font-weight: 700;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: background .2s;
+    }
+    #vd-yt-btn:hover { background: #c0000f; }
+
     /* ── YouTube redirect popup ── */
     #yt-popup-overlay {
       position: fixed; inset: 0; z-index: 8000;
@@ -475,7 +534,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
         재생
       </a>
-      <button class="h-btn h-btn-more" onclick="showYtPopup()">
+      <button class="h-btn h-btn-more" onclick="showVideoModal(window._heroVideo)">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         자세히 보기
       </button>
@@ -909,6 +968,42 @@ function setTxt(id, v) { const el = document.getElementById(id); if (el) el.text
 function fmtTime(d) {
   return `업데이트: ${d.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}`;
 }
+function showVideoModal(v) {
+  if (!v || document.getElementById('vd-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'vd-overlay';
+  overlay.innerHTML = `
+    <div id="vd-modal">
+      <button id="vd-close" onclick="closeVideoModal()" aria-label="닫기">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+      <div id="vd-video-wrap">
+        <iframe src="https://www.youtube.com/embed/${esc(v.id)}?autoplay=1&mute=0&rel=0&modestbranding=1&iv_load_policy=3"
+          allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        <div id="vd-video-grad"></div>
+      </div>
+      <div id="vd-body">
+        <div id="vd-meta">
+          <span id="vd-ch">${esc(v.channelLabel || '')}</span>
+        </div>
+        <div id="vd-title">${esc(v.title || '')}</div>
+        <div id="vd-actions">
+          <a id="vd-yt-btn" href="${esc(v.url || '#')}" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+            YouTube에서 보기
+          </a>
+        </div>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeVideoModal(); });
+  document.body.appendChild(overlay);
+}
+function closeVideoModal() {
+  document.getElementById('vd-overlay')?.remove();
+}
+
 function showYtPopup() {
   if (document.getElementById('yt-popup-overlay')) return;
   const overlay = document.createElement('div');
