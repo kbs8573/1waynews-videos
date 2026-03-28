@@ -360,10 +360,12 @@
     .yt-popup-btns a {
       display: block; padding: 11px 20px; border-radius: 8px;
       font-size: 13px; font-weight: 700; text-decoration: none;
-      background: #e50914; color: #fff;
-      transition: background .2s;
+      transition: background .2s, opacity .2s;
     }
-    .yt-popup-btns a:hover { background: #c0000f; }
+    .yt-popup-btns a.btn-ch1 { background: #e50914; color: #fff; }
+    .yt-popup-btns a.btn-ch1:hover { background: #c0000f; }
+    .yt-popup-btns a.btn-ch2 { background: #fff; color: #111; border: 1px solid rgba(0,0,0,.08); }
+    .yt-popup-btns a.btn-ch2:hover { opacity: .85; }
     .yt-popup-btns button {
       padding: 10px 20px; border-radius: 8px;
       font-size: 13px; font-weight: 600; cursor: pointer;
@@ -896,9 +898,9 @@ function showYtPopup() {
       <div class="yt-popup-icon">📺</div>
       <p>더 많은 영상을 보려면 유튜브 채널에서 확인해 주세요.</p>
       <div class="yt-popup-btns">
-        <a href="https://www.youtube.com/@1waynews-jhg" target="_blank" rel="noopener"
+        <a class="btn-ch1" href="https://www.youtube.com/@1waynews-jhg" target="_blank" rel="noopener"
            onclick="closeYtPopup()">전한길뉴스 유튜브 채널 바로가기</a>
-        <a href="https://www.youtube.com/@hangilog" target="_blank" rel="noopener"
+        <a class="btn-ch2" href="https://www.youtube.com/@hangilog" target="_blank" rel="noopener"
            onclick="closeYtPopup()">한기로그 유튜브 채널 바로가기</a>
         <button onclick="closeYtPopup()">닫기</button>
       </div>
