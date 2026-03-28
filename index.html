@@ -1008,11 +1008,18 @@ function stopHeroVideo() {
 
 function initHero(v) {
   if (!v) return;
-  const thumb   = document.getElementById('hero-thumb');
+  const thumb = document.getElementById('hero-thumb');
   document.getElementById('hero-ch-label').textContent = v.channelLabel || '';
   document.getElementById('hero-title').textContent    = v.title || '';
   document.getElementById('hero-play-btn').href        = v.url || '#';
   thumb.style.backgroundImage = `url('${v.thumb}')`;
+
+  // 버튼 상태 항상 초기화
+  heroMuted = true;
+  document.getElementById('hero-mute').style.display    = 'flex';
+  document.getElementById('hero-replay').style.display  = 'none';
+  document.getElementById('hero-ico-mute').style.display  = '';
+  document.getElementById('hero-ico-sound').style.display = 'none';
 
   const iframe = createHeroIframe(v.id);
   iframe.style.opacity = '1';
