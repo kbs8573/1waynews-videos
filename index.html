@@ -1479,18 +1479,37 @@ function _updatePlaylistBar() {
   document.getElementById('playlist-count').textContent = `${n}개 선택됨`;
   document.getElementById('playlist-bar').classList.toggle('visible', n > 0);
   document.body.classList.toggle('sel-mode', n > 0);
+  // 각 섹션의 전체선택/전체해제 버튼 텍스트 동기화
+  document.querySelectorAll('.t-section').forEach(sec => {
+    const btn = sec.querySelector('.t-selall');
+    if (!btn) return;
+    const vids = [...new Set([...sec.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))];
+    if (!vids.length) return;
+    const allSelected = vids.every(vid => selectedVideos.has(vid));
+    btn.textContent = allSelected ? '전체해제' : '전체선택';
+  });
 }
 
 function selectAllInSection(secId) {
   const sec = document.getElementById(secId);
   if (!sec) return;
-  const vids = new Set();
-  sec.querySelectorAll('.card[data-vid]').forEach(c => vids.add(c.dataset.vid));
-  vids.forEach(vid => {
-    selectedVideos.add(vid);
-    document.querySelectorAll(`.card[data-vid="${vid}"]`).forEach(c => c.classList.add('selected'));
-  });
-  document.body.classList.add('sel-mode');
+  const vids = [...new Set([...sec.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))];
+  if (!vids.length) return;
+  const allSelected = vids.every(vid => selectedVideos.has(vid));
+  if (allSelected) {
+    // 전체 해제
+    vids.forEach(vid => {
+      selectedVideos.delete(vid);
+      document.querySelectorAll(`.card[data-vid="${vid}"]`).forEach(c => c.classList.remove('selected'));
+    });
+  } else {
+    // 전체 선택
+    vids.forEach(vid => {
+      selectedVideos.add(vid);
+      document.querySelectorAll(`.card[data-vid="${vid}"]`).forEach(c => c.classList.add('selected'));
+    });
+    document.body.classList.add('sel-mode');
+  }
   _updatePlaylistBar();
 }
 
