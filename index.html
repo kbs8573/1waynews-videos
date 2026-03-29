@@ -221,6 +221,17 @@
     .ts-3 .t-badge { background: rgba(251,146,60,.12);  color: var(--c3); border: 1px solid rgba(251,146,60,.25); }
     .ts-4 .t-badge { background: rgba(161,161,170,.12); color: var(--c4); border: 1px solid rgba(161,161,170,.25); }
     .t-cnt { font-size: 13px; color: var(--muted); }
+    .t-head-right { display: flex; align-items: center; gap: 10px; }
+    .t-selall {
+      display: none;
+      background: none; border: 1px solid rgba(255,255,255,.2);
+      color: rgba(255,255,255,.6); font-size: 12px; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px; cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    body.sel-mode .t-selall { display: block; }
+    .t-selall:hover { background: rgba(255,255,255,.1); color: #fff; border-color: rgba(255,255,255,.4); }
     .t-divider { display: none; }
 
     /* ── Rail wrapper ── */
@@ -284,6 +295,7 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent; /* iOS 탭 하이라이트 제거 */
       -webkit-user-drag: none; /* 링크 드래그 미리보기 방지 */
+      touch-action: manipulation; /* iOS 시스템 long-press 제스처 차단 (touchcancel 방지) + 스크롤 허용 */
     }
     .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
     .card.selected { border-color: #e50914; box-shadow: 0 0 0 2px #e50914; transform: translateY(-4px); }
@@ -869,7 +881,10 @@ function render(videos) {
         <span class="t-name">${cat.label}</span>
         <span class="t-badge">${cat.badge}</span>
       </div>
-      <span class="t-cnt">${totals[i]}개</span>`;
+      <div class="t-head-right">
+        <span class="t-cnt">${totals[i]}개</span>
+        <button class="t-selall" onclick="selectAllInSection('sec-${i}')">전체선택</button>
+      </div>`;
     sec.appendChild(head);
 
     if (i === LAZY_CAT) {
@@ -1466,6 +1481,19 @@ function _updatePlaylistBar() {
   document.body.classList.toggle('sel-mode', n > 0);
 }
 
+function selectAllInSection(secId) {
+  const sec = document.getElementById(secId);
+  if (!sec) return;
+  const vids = new Set();
+  sec.querySelectorAll('.card[data-vid]').forEach(c => vids.add(c.dataset.vid));
+  vids.forEach(vid => {
+    selectedVideos.add(vid);
+    document.querySelectorAll(`.card[data-vid="${vid}"]`).forEach(c => c.classList.add('selected'));
+  });
+  document.body.classList.add('sel-mode');
+  _updatePlaylistBar();
+}
+
 function clearSelection() {
   selectedVideos.clear();
   document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
@@ -1489,17 +1517,14 @@ document.addEventListener('click', e => {
 }, true);
 
 // ── 모바일 롱프레스 선택 ──────────────────────────────────
-// iOS 웹앱(standalone) 모드에서 <a> 오래 누르면 시스템이 touchcancel 발생 →
-// touchstart에서 preventDefault()로 시스템 제스처 차단,
-// 짧은 탭(YouTube 이동)은 touchend에서 수동 처리
-let _lpTimer = null, _lpMoved = false, _lpFired = false, _lpCard = null;
+// .card에 touch-action: manipulation 을 적용해 iOS 시스템 long-press 제스처(touchcancel)를 CSS 수준에서 차단.
+// 덕분에 touchstart에서 preventDefault() 불필요 → 카드 위 스크롤도 정상 동작.
+let _lpTimer = null, _lpMoved = false, _lpFired = false;
 document.addEventListener('touchstart', e => {
   const card = e.target.closest('.card[data-vid]');
   if (!card || e.target.closest('.select-btn')) return;
-  e.preventDefault();          // iOS 시스템 long-press 제스처(touchcancel) 차단
   _lpMoved = false;
   _lpFired = false;
-  _lpCard  = card;
   _lpTimer = setTimeout(() => {
     if (_lpMoved) return;
     if (navigator.vibrate) navigator.vibrate(50); // 햅틱 피드백
@@ -1507,31 +1532,13 @@ document.addEventListener('touchstart', e => {
     toggleSelect(card.dataset.vid, null);
     _lpTimer = null;
   }, 500);
-}, { passive: false });
+}, { passive: true });
 document.addEventListener('touchmove', () => { _lpMoved = true; clearTimeout(_lpTimer); }, { passive: true });
 document.addEventListener('touchend', e => {
   clearTimeout(_lpTimer);
-  const card = _lpCard;
-  _lpCard = null;
-  if (_lpFired) {
-    // 롱프레스 완료 → 합성 click 차단
-    _lpFired = false;
-    e.preventDefault();
-    return;
-  }
-  // 짧은 탭 (preventDefault로 자동 click 없으므로 수동 처리)
-  if (!card || _lpMoved) return;
-  e.preventDefault();
-  if (selectedVideos.size > 0) {
-    // 선택 모드: 토글
-    toggleSelect(card.dataset.vid, null);
-  } else {
-    // 일반 탭: YouTube 이동
-    const href = card.getAttribute('href');
-    if (href) window.open(href, '_blank', 'noopener');
-  }
+  if (_lpFired) { _lpFired = false; e.preventDefault(); } // 롱프레스 후 합성 click 차단
 }, { passive: false });
-document.addEventListener('touchcancel', () => { clearTimeout(_lpTimer); _lpFired = false; _lpCard = null; }, { passive: true });
+document.addEventListener('touchcancel', () => { clearTimeout(_lpTimer); _lpFired = false; }, { passive: true });
 // Android Chrome 컨텍스트 메뉴(오래 누르기 팝업) 방지
 document.addEventListener('contextmenu', e => {
   if (e.target.closest('.card[data-vid]')) e.preventDefault();
