@@ -262,6 +262,7 @@
     .rl-live  { background: rgba(220,38,38,.25);  color: #f87171; }
     .rl-video { background: rgba(59,130,246,.2);  color: #60a5fa; }
     .rl-short { background: rgba(251,146,60,.2);  color: #fb923c; }
+    .rl-cnt { font-size: 11px; color: rgba(255,255,255,.4); margin-left: 4px; display: none; }
 
     /* ── Rail (horizontal scroll) ── */
     .rail {
@@ -306,12 +307,17 @@
       text-decoration: none; color: inherit;
       transition: transform .2s, box-shadow .2s, border-color .15s;
       position: relative;
-      -webkit-touch-callout: none; /* iOS Safari 링크 미리보기 팝업 방지 */
+      -webkit-touch-callout: none;
       -webkit-user-select: none;
       user-select: none;
-      -webkit-tap-highlight-color: transparent; /* iOS 탭 하이라이트 제거 */
-      -webkit-user-drag: none; /* 링크 드래그 미리보기 방지 */
-      touch-action: manipulation; /* iOS 시스템 long-press 제스처 차단 (touchcancel 방지) + 스크롤 허용 */
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-drag: none;
+      touch-action: manipulation;
+    }
+    /* iOS 웹앱: img 롱프레스 시 시스템 이미지 메뉴(touchcancel 유발) 방지 */
+    .card img, .card .thumb-err {
+      -webkit-touch-callout: none;
+      pointer-events: none;
     }
     .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
     .card.selected { border-color: #e50914; box-shadow: 0 0 0 2px #e50914; transform: translateY(-4px); }
@@ -912,7 +918,6 @@ function render(videos) {
         <span class="t-badge">${cat.badge}</span>
       </div>
       <div class="t-head-right">
-        <span class="t-type-cnt"></span>
         <span class="t-cnt">${totals[i]}개</span>
         <button class="t-selall" onclick="selectAllInSection('sec-${i}')">전체선택</button>
       </div>`;
@@ -962,7 +967,7 @@ function buildRail(items, type, catIdx, isLazy) {
   // Label row
   const labelDiv = document.createElement('div');
   labelDiv.className = 'rail-label';
-  labelDiv.innerHTML = `<span class="rl-badge ${badge}">${lbl}</span>`;
+  labelDiv.innerHTML = `<span class="rl-badge ${badge}">${lbl}</span><span class="rl-cnt"></span>`;
   wrap.appendChild(labelDiv);
 
   // Arrow Left
@@ -1084,7 +1089,7 @@ function cardHTML(v) {
   const views   = v.views != null ? `👁 ${fmtN(v.views)}` : '';
 
   return `
-<a class="card card-${isShort ? 's' : 'v'}" href="${esc(v.url)}" target="_blank" rel="noopener" data-vid="${esc(v.id)}">
+<div class="card card-${isShort ? 's' : 'v'}" data-href="${esc(v.url)}" data-vid="${esc(v.id)}">
   <div class="select-btn" onclick="toggleSelect('${esc(v.id)}',event)" title="선택">
     <svg class="select-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
   </div>
@@ -1103,7 +1108,7 @@ function cardHTML(v) {
     <div class="card-title">${esc(v.title)}</div>
     <div class="card-views">${v.channelLabel ? `<span class="card-ch">${esc(v.channelLabel)}</span>` : ''}${views}</div>
   </div>
-</a>`;
+</div>`;
 }
 
 // ── Filter ───────────────────────────────────────────────
@@ -1127,23 +1132,18 @@ function setFilter(el, f) {
     const cntEl = sec.querySelector('.t-cnt');
     if (cntEl) cntEl.textContent = `${cnt}개`;
 
-    // 전체 필터일 때만 타입별 카운트 표시
-    const typeEl = sec.querySelector('.t-type-cnt');
-    if (typeEl) {
+    // 각 rail-wrap의 카운트 표시 (전체 필터 시에만)
+    allRails.forEach(w => {
+      const cntEl = w.querySelector('.rl-cnt');
+      if (!cntEl) return;
       if (f === 'all') {
-        const parts = [];
-        const liveN  = sec.querySelector('.rail-wrap[data-type="live"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
-        const shortN = sec.querySelector('.rail-wrap[data-type="short"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
-        const videoN = sec.querySelector('.rail-wrap[data-type="video"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
-        if (liveN)  parts.push(`🔴 ${liveN}`);
-        if (shortN) parts.push(`⚡ ${shortN}`);
-        if (videoN) parts.push(`▶ ${videoN}`);
-        typeEl.textContent = parts.join('  ');
-        typeEl.style.display = parts.length > 1 ? 'inline' : 'none';
+        const n = w.querySelectorAll('.card[data-vid]').length;
+        cntEl.textContent = `${n}개`;
+        cntEl.style.display = 'inline';
       } else {
-        typeEl.style.display = 'none';
+        cntEl.style.display = 'none';
       }
-    }
+    });
   });
 
   // 스크롤 위치 유지 (필터 클릭 시 현재 위치에서 필터링)
@@ -1594,14 +1594,17 @@ function playAsPlaylist() {
   window.open(`https://www.youtube.com/watch_videos?video_ids=${ids}`, '_blank');
 }
 
-// 선택 모드 활성 시 카드 클릭 → 선택 토글 (YouTube 이동 막음)
+// 카드 클릭: 선택 모드 시 토글, 일반 모드 시 YouTube 이동
 document.addEventListener('click', e => {
-  if (!selectedVideos.size) return;
   const card = e.target.closest('.card[data-vid]');
   if (!card) return;
   if (e.target.closest('.select-btn')) return; // select-btn은 자체 처리
-  e.preventDefault();
-  toggleSelect(card.dataset.vid, e);
+  if (selectedVideos.size > 0) {
+    toggleSelect(card.dataset.vid, e);
+  } else {
+    const href = card.dataset.href;
+    if (href) window.open(href, '_blank', 'noopener');
+  }
 }, true);
 
 // ── 모바일 롱프레스 선택 ──────────────────────────────────
@@ -1631,7 +1634,7 @@ document.addEventListener('touchstart', e => {
     _lpFired = true;
     toggleSelect(card.dataset.vid, null);
     _lpTimer = null;
-  }, 500);
+  }, 400); // iOS가 ~500ms에 시스템 제스처를 가져가기 전에 먼저 발동
 }, { passive: true });
 
 document.addEventListener('touchmove', e => {
@@ -1654,9 +1657,12 @@ document.addEventListener('touchcancel', () => {
   clearTimeout(_lpTimer);
   const card    = _lpCard;
   const elapsed = performance.now() - _lpStartTime;
+  const fired   = _lpFired;
   _lpCard = null; _lpStart = null; _lpFired = false;
-  // iOS 웹앱: <a> 롱프레스가 touchcancel을 유발 (~300ms) → 선택 처리
-  if (card && !_lpMoved && elapsed >= 250) {
+  // 타이머가 이미 발동했으면 중복 토글 방지 (iOS가 500ms에 touchcancel을 추가 발생시키는 경우)
+  if (fired) return;
+  // iOS 웹앱: img 등 롱프레스 시 touchcancel 유발 (~300ms) → 선택 처리
+  if (card && !_lpMoved && elapsed >= 200) {
     if (navigator.vibrate) navigator.vibrate(50);
     toggleSelect(card.dataset.vid, null);
   }
