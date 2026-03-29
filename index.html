@@ -1151,8 +1151,12 @@ function setFilter(el, f) {
       if (f === 'all' || f === 'video') { if (videoN) parts.push(`<span style="color:#60a5fa">▶ ${videoN}</span>`); }
       const totalN = liveN + videoN + shortN;
       const sep = `<span style="color:rgba(255,255,255,.2)"> · </span>`;
-      const totalHtml = `<span style="color:rgba(255,255,255,.4)">📺 ${totalN}</span>`;
-      typeEl.innerHTML = totalHtml + (parts.length ? sep + parts.join(sep) : '');
+      if (f === 'all') {
+        const totalHtml = `<span style="color:rgba(255,255,255,.4)">📺 ${totalN}</span>`;
+        typeEl.innerHTML = totalHtml + (parts.length ? sep + parts.join(sep) : '');
+      } else {
+        typeEl.innerHTML = parts.join(sep);
+      }
       typeEl.style.display = totalN ? 'inline' : 'none';
     }
   });
