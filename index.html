@@ -1140,9 +1140,11 @@ function setFilter(el, f) {
     // 섹션 헤더 카테고리별 카운트 (아이콘 표시)
     const typeEl = sec.querySelector('.t-type-cnt');
     if (typeEl) {
-      const liveN  = sec.querySelector('.rail-wrap[data-type="live"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
-      const videoN = sec.querySelector('.rail-wrap[data-type="video"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
-      const shortN = sec.querySelector('.rail-wrap[data-type="short"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
+      // LAZY_CAT(일주일 이상) 섹션은 DOM에 일부만 렌더링되므로 lazyStore 실제 수 사용
+      const isLazy = sec.id === `sec-${LAZY_CAT}`;
+      const liveN  = isLazy ? lazyStore.live.length  : (sec.querySelector('.rail-wrap[data-type="live"]')?.querySelectorAll('.card[data-vid]').length ?? 0);
+      const videoN = isLazy ? lazyStore.video.length : (sec.querySelector('.rail-wrap[data-type="video"]')?.querySelectorAll('.card[data-vid]').length ?? 0);
+      const shortN = isLazy ? lazyStore.short.length : (sec.querySelector('.rail-wrap[data-type="short"]')?.querySelectorAll('.card[data-vid]').length ?? 0);
       const parts = [];
       if (f === 'all' || f === 'live')  { if (liveN)  parts.push(`<span style="color:#f87171">🔴 ${liveN}</span>`); }
       if (f === 'all' || f === 'short') { if (shortN) parts.push(`<span style="color:#fb923c">⚡ ${shortN}</span>`); }
