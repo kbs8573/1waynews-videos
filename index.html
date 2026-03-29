@@ -1536,28 +1536,70 @@ document.addEventListener('click', e => {
 }, true);
 
 // ── 모바일 롱프레스 선택 ──────────────────────────────────
-// .card에 touch-action: manipulation 을 적용해 iOS 시스템 long-press 제스처(touchcancel)를 CSS 수준에서 차단.
-// 덕분에 touchstart에서 preventDefault() 불필요 → 카드 위 스크롤도 정상 동작.
-let _lpTimer = null, _lpMoved = false, _lpFired = false;
+// iOS 웹앱(standalone)에서 <a> 롱프레스 시 iOS가 touchcancel을 발생시켜 타이머가 취소됨.
+// → touchstart에서 preventDefault()로 차단. 대신 touchmove에서 스크롤을 수동 에뮬레이션:
+//   · 세로 이동 우세 → window.scrollBy (페이지 세로 스크롤)
+//   · 가로 이동 우세 → .rail.scrollLeft (카드 가로 스크롤)
+// 짧은 탭도 자동 click이 발생하지 않으므로 touchend에서 수동 처리.
+let _lpTimer = null, _lpMoved = false, _lpFired = false, _lpCard = null, _lpPos = null;
 document.addEventListener('touchstart', e => {
   const card = e.target.closest('.card[data-vid]');
   if (!card || e.target.closest('.select-btn')) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  _lpPos   = { x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY };
   _lpMoved = false;
   _lpFired = false;
+  _lpCard  = card;
   _lpTimer = setTimeout(() => {
     if (_lpMoved) return;
-    if (navigator.vibrate) navigator.vibrate(50); // 햅틱 피드백
+    if (navigator.vibrate) navigator.vibrate(50);
     _lpFired = true;
     toggleSelect(card.dataset.vid, null);
     _lpTimer = null;
   }, 500);
+}, { passive: false });
+
+document.addEventListener('touchmove', e => {
+  if (!_lpPos) return;
+  const t  = e.touches[0];
+  const dx = t.clientX - _lpPos.lx;
+  const dy = t.clientY - _lpPos.ly;
+  const ax = Math.abs(t.clientX - _lpPos.x);
+  const ay = Math.abs(t.clientY - _lpPos.y);
+  if (!_lpMoved && (ax > 8 || ay > 8)) { _lpMoved = true; clearTimeout(_lpTimer); }
+  if (_lpMoved) {
+    if (ay >= ax) {
+      window.scrollBy(0, -dy);                              // 세로 스크롤
+    } else {
+      const rail = _lpCard?.closest('.rail');
+      if (rail) rail.scrollLeft -= dx;                      // 가로 스크롤
+    }
+  }
+  _lpPos.lx = t.clientX;
+  _lpPos.ly = t.clientY;
 }, { passive: true });
-document.addEventListener('touchmove', () => { _lpMoved = true; clearTimeout(_lpTimer); }, { passive: true });
+
 document.addEventListener('touchend', e => {
   clearTimeout(_lpTimer);
-  if (_lpFired) { _lpFired = false; e.preventDefault(); } // 롱프레스 후 합성 click 차단
+  const card = _lpCard;
+  _lpCard = null; _lpPos = null;
+  if (_lpFired) { _lpFired = false; e.preventDefault(); return; } // 롱프레스 후 합성 click 차단
+  if (!card || _lpMoved) return;
+  // 짧은 탭: touchstart preventDefault로 자동 click 없으므로 수동 처리
+  e.preventDefault();
+  if (selectedVideos.size > 0) {
+    toggleSelect(card.dataset.vid, null);
+  } else {
+    const href = card.getAttribute('href');
+    if (href) window.open(href, '_blank', 'noopener');
+  }
 }, { passive: false });
-document.addEventListener('touchcancel', () => { clearTimeout(_lpTimer); _lpFired = false; }, { passive: true });
+
+document.addEventListener('touchcancel', () => {
+  clearTimeout(_lpTimer);
+  _lpFired = false; _lpCard = null; _lpPos = null;
+}, { passive: true });
 // Android Chrome 컨텍스트 메뉴(오래 누르기 팝업) 방지
 document.addEventListener('contextmenu', e => {
   if (e.target.closest('.card[data-vid]')) e.preventDefault();
