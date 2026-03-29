@@ -196,6 +196,21 @@
     .c-video { background: rgba(96,165,250,.15); color: #60a5fa; }
     .c-short { background: rgba(251,146,60,.15); color: #fb923c; }
 
+    /* ── 모바일: 4개 칩을 한 줄에 균등 배치 ── */
+    @media (max-width: 600px) {
+      .filter-bar {
+        gap: 6px; padding: 10px 12px; overflow-x: hidden;
+      }
+      .chip {
+        flex: 1; flex-direction: column; align-items: center; justify-content: center;
+        gap: 3px; padding: 8px 4px; border-radius: 12px;
+        white-space: normal; text-align: center; font-size: 11px; flex-shrink: 1;
+      }
+      .chip .cnt {
+        font-size: 10px; line-height: 1.2; padding: 1px 5px;
+      }
+    }
+
     /* ── Main ── */
     main { padding: 4px 0 60px; }
 
