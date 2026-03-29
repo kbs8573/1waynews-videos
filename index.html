@@ -1489,12 +1489,17 @@ document.addEventListener('click', e => {
 }, true);
 
 // ── 모바일 롱프레스 선택 ──────────────────────────────────
-let _lpTimer = null, _lpMoved = false, _lpFired = false;
+// iOS 웹앱(standalone) 모드에서 <a> 오래 누르면 시스템이 touchcancel 발생 →
+// touchstart에서 preventDefault()로 시스템 제스처 차단,
+// 짧은 탭(YouTube 이동)은 touchend에서 수동 처리
+let _lpTimer = null, _lpMoved = false, _lpFired = false, _lpCard = null;
 document.addEventListener('touchstart', e => {
   const card = e.target.closest('.card[data-vid]');
   if (!card || e.target.closest('.select-btn')) return;
+  e.preventDefault();          // iOS 시스템 long-press 제스처(touchcancel) 차단
   _lpMoved = false;
   _lpFired = false;
+  _lpCard  = card;
   _lpTimer = setTimeout(() => {
     if (_lpMoved) return;
     if (navigator.vibrate) navigator.vibrate(50); // 햅틱 피드백
@@ -1502,13 +1507,31 @@ document.addEventListener('touchstart', e => {
     toggleSelect(card.dataset.vid, null);
     _lpTimer = null;
   }, 500);
-}, { passive: true });
-document.addEventListener('touchmove',  () => { _lpMoved = true; clearTimeout(_lpTimer); }, { passive: true });
+}, { passive: false });
+document.addEventListener('touchmove', () => { _lpMoved = true; clearTimeout(_lpTimer); }, { passive: true });
 document.addEventListener('touchend', e => {
   clearTimeout(_lpTimer);
-  if (_lpFired) { _lpFired = false; e.preventDefault(); } // iOS Safari 합성 click 방지
+  const card = _lpCard;
+  _lpCard = null;
+  if (_lpFired) {
+    // 롱프레스 완료 → 합성 click 차단
+    _lpFired = false;
+    e.preventDefault();
+    return;
+  }
+  // 짧은 탭 (preventDefault로 자동 click 없으므로 수동 처리)
+  if (!card || _lpMoved) return;
+  e.preventDefault();
+  if (selectedVideos.size > 0) {
+    // 선택 모드: 토글
+    toggleSelect(card.dataset.vid, null);
+  } else {
+    // 일반 탭: YouTube 이동
+    const href = card.getAttribute('href');
+    if (href) window.open(href, '_blank', 'noopener');
+  }
 }, { passive: false });
-document.addEventListener('touchcancel',() => { clearTimeout(_lpTimer); _lpFired = false; }, { passive: true });
+document.addEventListener('touchcancel', () => { clearTimeout(_lpTimer); _lpFired = false; _lpCard = null; }, { passive: true });
 // Android Chrome 컨텍스트 메뉴(오래 누르기 팝업) 방지
 document.addEventListener('contextmenu', e => {
   if (e.target.closest('.card[data-vid]')) e.preventDefault();
