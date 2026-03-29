@@ -1145,11 +1145,14 @@ function setFilter(el, f) {
       const videoN = sec.querySelector('.rail-wrap[data-type="video"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
       const shortN = sec.querySelector('.rail-wrap[data-type="short"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
       const parts = [];
-      if (f === 'all' || f === 'live')  { if (liveN)  parts.push(`🔴 ${liveN}`); }
-      if (f === 'all' || f === 'video') { if (videoN) parts.push(`▶ ${videoN}`); }
-      if (f === 'all' || f === 'short') { if (shortN) parts.push(`⚡ ${shortN}`); }
-      typeEl.textContent = parts.join('  ·  ');
-      typeEl.style.display = parts.length ? 'inline' : 'none';
+      if (f === 'all' || f === 'live')  { if (liveN)  parts.push(`<span style="color:#f87171">🔴 ${liveN}</span>`); }
+      if (f === 'all' || f === 'video') { if (videoN) parts.push(`<span style="color:#60a5fa">▶ ${videoN}</span>`); }
+      if (f === 'all' || f === 'short') { if (shortN) parts.push(`<span style="color:#fb923c">⚡ ${shortN}</span>`); }
+      const totalN = liveN + videoN + shortN;
+      const sep = `<span style="color:rgba(255,255,255,.2)"> · </span>`;
+      const totalHtml = `<span style="color:rgba(255,255,255,.4)">📺 ${totalN}</span>`;
+      typeEl.innerHTML = (parts.length ? parts.join(sep) + sep : '') + totalHtml;
+      typeEl.style.display = totalN ? 'inline' : 'none';
     }
   });
 
