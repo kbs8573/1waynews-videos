@@ -1564,8 +1564,8 @@ function _updatePlaylistBar() {
       });
       const items = [];
       if (counts.live)  items.push(`<span class="pl-sec-item" style="color:#f87171">🔴 ${counts.live}</span>`);
-      if (counts.video) items.push(`<span class="pl-sec-item" style="color:#60a5fa">▶ ${counts.video}</span>`);
       if (counts.short) items.push(`<span class="pl-sec-item" style="color:#fb923c">⚡ ${counts.short}</span>`);
+      if (counts.video) items.push(`<span class="pl-sec-item" style="color:#60a5fa">▶ ${counts.video}</span>`);
       secCnt.innerHTML = items.join('<span class="pl-sep"> · </span>');
     } else {
       secCnt.innerHTML = '';
