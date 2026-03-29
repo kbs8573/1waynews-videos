@@ -1535,48 +1535,27 @@ document.addEventListener('click', e => {
   toggleSelect(card.dataset.vid, e);
 }, true);
 
-// ── 모바일 롱프레스 선택 + 스크롤 에뮬레이션 ──────────────
-// iOS 웹앱(standalone)에서 <a> 롱프레스 시 iOS가 touchcancel 발생 → touchstart preventDefault로 차단.
-// 대신 touchmove에서 스크롤 수동 에뮬레이션 + touchend 후 관성(모멘텀) 애니메이션 적용.
-let _lpTimer = null, _lpMoved = false, _lpFired = false, _lpCard = null, _lpPos = null;
-let _lpDir = null;   // 방향 잠금: 'v'(세로) | 'h'(가로)
-let _lpRail = null;  // 가로 스크롤 대상 .rail 캐시
-let _lpVx = 0, _lpVy = 0, _lpPrevT = 0; // 속도 추적 (px/ms)
-let _lpMomId = null; // 관성 rAF id
-let _lpMomRail = null; // 관성 중 스크롤할 rail
-
-function _lpStopMomentum() {
-  if (_lpMomId) { cancelAnimationFrame(_lpMomId); _lpMomId = null; }
-}
-function _lpStartMomentum(dir, rail, vx, vy) {
-  _lpStopMomentum();
-  _lpMomRail = rail;
-  const DECAY = 0.92; // 감속 계수 (클수록 더 오래 미끄러짐)
-  let cvx = vx, cvy = vy;
-  function frame() {
-    cvx *= DECAY; cvy *= DECAY;
-    if (Math.abs(cvx) < 0.1 && Math.abs(cvy) < 0.1) { _lpMomId = null; return; }
-    if (dir === 'h') {
-      if (_lpMomRail) _lpMomRail.scrollLeft -= cvx * 16; // 16ms ≈ 1프레임
-    } else {
-      window.scrollBy(0, -cvy * 16);
-    }
-    _lpMomId = requestAnimationFrame(frame);
-  }
-  _lpMomId = requestAnimationFrame(frame);
-}
+// ── 모바일 롱프레스 선택 ──────────────────────────────────
+// 네이티브 스크롤을 완전히 그대로 사용 (touchstart에서 preventDefault 없음).
+//
+// [일반 브라우저] 500ms 타이머로 롱프레스 감지.
+// [iOS 웹앱]     <a> 롱프레스 시 iOS가 약 300ms에 touchcancel 발생 →
+//               touchcancel에서 경과시간 >= 250ms 이면 선택으로 처리.
+// [짧은 탭]     자연 click 이벤트 그대로 처리
+//               (선택 모드: 위 click 리스너가 차단·토글 / 일반: <a> 이동)
+let _lpTimer = null, _lpMoved = false, _lpFired = false;
+let _lpCard = null, _lpStart = null, _lpStartTime = 0;
 
 document.addEventListener('touchstart', e => {
   const card = e.target.closest('.card[data-vid]');
   if (!card || e.target.closest('.select-btn')) return;
-  e.preventDefault();
-  _lpStopMomentum(); // 진행 중인 관성 취소
-  const t = e.touches[0];
-  _lpPos   = { x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY };
-  _lpMoved = false; _lpFired = false; _lpDir = null;
-  _lpVx = 0; _lpVy = 0; _lpPrevT = performance.now();
-  _lpCard  = card;
-  _lpRail  = card.closest('.rail');
+  const t      = e.touches[0];
+  _lpCard      = card;
+  _lpStart     = { x: t.clientX, y: t.clientY };
+  _lpStartTime = performance.now();
+  _lpMoved     = false;
+  _lpFired     = false;
+  clearTimeout(_lpTimer);
   _lpTimer = setTimeout(() => {
     if (_lpMoved) return;
     if (navigator.vibrate) navigator.vibrate(50);
@@ -1584,71 +1563,34 @@ document.addEventListener('touchstart', e => {
     toggleSelect(card.dataset.vid, null);
     _lpTimer = null;
   }, 500);
-}, { passive: false });
+}, { passive: true });
 
 document.addEventListener('touchmove', e => {
-  if (!_lpPos) return;
-  const t  = e.touches[0];
-  const dx = t.clientX - _lpPos.lx;
-  const dy = t.clientY - _lpPos.ly;
-  const ax = Math.abs(t.clientX - _lpPos.x);
-  const ay = Math.abs(t.clientY - _lpPos.y);
-
-  // 첫 8px 이동 시 방향 잠금
-  if (!_lpMoved && (ax > 8 || ay > 8)) {
+  if (!_lpStart || _lpMoved) return;
+  const t = e.touches[0];
+  if (Math.abs(t.clientX - _lpStart.x) > 8 || Math.abs(t.clientY - _lpStart.y) > 8) {
     _lpMoved = true;
-    _lpDir   = ay >= ax ? 'v' : 'h';
     clearTimeout(_lpTimer);
   }
-
-  if (_lpMoved) {
-    // 속도 계산 (px/ms) — 지수 이동 평균으로 노이즈 제거
-    const now = performance.now();
-    const dt  = Math.max(now - _lpPrevT, 1);
-    _lpVx = _lpVx * 0.6 + (dx / dt) * 0.4;
-    _lpVy = _lpVy * 0.6 + (dy / dt) * 0.4;
-    _lpPrevT = now;
-
-    if (_lpDir === 'v') {
-      window.scrollBy(0, -dy);           // 세로: 페이지 스크롤
-    } else {
-      if (_lpRail) _lpRail.scrollLeft -= dx; // 가로: rail 직접 (항상 즉시 반영)
-    }
-  }
-  _lpPos.lx = t.clientX;
-  _lpPos.ly = t.clientY;
 }, { passive: true });
 
 document.addEventListener('touchend', e => {
   clearTimeout(_lpTimer);
-  const card  = _lpCard;
-  const dir   = _lpDir;
-  const rail  = _lpRail;
-  const vx    = _lpVx, vy = _lpVy;
-  _lpCard = null; _lpPos = null; _lpDir = null; _lpRail = null;
-
-  if (_lpFired) { _lpFired = false; e.preventDefault(); return; }
-
-  if (_lpMoved) {
-    // 스크롤 중이었으면 관성 애니메이션 시작
-    _lpStartMomentum(dir, rail, vx, vy);
-    return;
-  }
-
-  // 짧은 탭 처리
-  if (!card) return;
-  e.preventDefault();
-  if (selectedVideos.size > 0) {
-    toggleSelect(card.dataset.vid, null);
-  } else {
-    const href = card.getAttribute('href');
-    if (href) window.open(href, '_blank', 'noopener');
-  }
+  _lpCard = null; _lpStart = null;
+  // 500ms 타이머 완료 후 손 뗄 때 합성 click 차단 (선택 후 YouTube 이동 방지)
+  if (_lpFired) { _lpFired = false; e.preventDefault(); }
 }, { passive: false });
 
 document.addEventListener('touchcancel', () => {
   clearTimeout(_lpTimer);
-  _lpFired = false; _lpCard = null; _lpPos = null; _lpDir = null; _lpRail = null;
+  const card    = _lpCard;
+  const elapsed = performance.now() - _lpStartTime;
+  _lpCard = null; _lpStart = null; _lpFired = false;
+  // iOS 웹앱: <a> 롱프레스가 touchcancel을 유발 (~300ms) → 선택 처리
+  if (card && !_lpMoved && elapsed >= 250) {
+    if (navigator.vibrate) navigator.vibrate(50);
+    toggleSelect(card.dataset.vid, null);
+  }
 }, { passive: true });
 // Android Chrome 컨텍스트 메뉴(오래 누르기 팝업) 방지
 document.addEventListener('contextmenu', e => {
