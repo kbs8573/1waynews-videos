@@ -1150,7 +1150,7 @@ function setFilter(el, f) {
       const totalN = liveN + videoN + shortN;
       const sep = `<span style="color:rgba(255,255,255,.2)"> · </span>`;
       const totalHtml = `<span style="color:rgba(255,255,255,.4)">📺 ${totalN}</span>`;
-      typeEl.innerHTML = (parts.length ? parts.join(sep) + sep : '') + totalHtml;
+      typeEl.innerHTML = totalHtml + (parts.length ? sep + parts.join(sep) : '');
       typeEl.style.display = totalN ? 'inline' : 'none';
     }
   });
