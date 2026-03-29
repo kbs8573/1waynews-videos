@@ -1139,7 +1139,7 @@ function setFilter(el, f) {
         if (shortN) parts.push(`⚡ ${shortN}`);
         if (videoN) parts.push(`▶ ${videoN}`);
         typeEl.textContent = parts.join('  ');
-        typeEl.style.display = parts.length > 1 ? '' : 'none';
+        typeEl.style.display = parts.length > 1 ? 'inline' : 'none';
       } else {
         typeEl.style.display = 'none';
       }
