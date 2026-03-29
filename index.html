@@ -1535,26 +1535,48 @@ document.addEventListener('click', e => {
   toggleSelect(card.dataset.vid, e);
 }, true);
 
-// ── 모바일 롱프레스 선택 ──────────────────────────────────
-// iOS 웹앱(standalone)에서 <a> 롱프레스 시 iOS가 touchcancel을 발생시켜 타이머가 취소됨.
-// → touchstart에서 preventDefault()로 차단. 대신 touchmove에서 스크롤을 수동 에뮬레이션:
-//   · 세로 이동 우세 → window.scrollBy (페이지 세로 스크롤)
-//   · 가로 이동 우세 → .rail.scrollLeft (카드 가로 스크롤)
-// 짧은 탭도 자동 click이 발생하지 않으므로 touchend에서 수동 처리.
+// ── 모바일 롱프레스 선택 + 스크롤 에뮬레이션 ──────────────
+// iOS 웹앱(standalone)에서 <a> 롱프레스 시 iOS가 touchcancel 발생 → touchstart preventDefault로 차단.
+// 대신 touchmove에서 스크롤 수동 에뮬레이션 + touchend 후 관성(모멘텀) 애니메이션 적용.
 let _lpTimer = null, _lpMoved = false, _lpFired = false, _lpCard = null, _lpPos = null;
-let _lpDir = null; // 스크롤 방향 잠금: 'v'(세로) | 'h'(가로) — 첫 이동 시 결정 후 유지
-let _lpRail = null; // 가로 스크롤 대상 .rail 요소 (캐시)
+let _lpDir = null;   // 방향 잠금: 'v'(세로) | 'h'(가로)
+let _lpRail = null;  // 가로 스크롤 대상 .rail 캐시
+let _lpVx = 0, _lpVy = 0, _lpPrevT = 0; // 속도 추적 (px/ms)
+let _lpMomId = null; // 관성 rAF id
+let _lpMomRail = null; // 관성 중 스크롤할 rail
+
+function _lpStopMomentum() {
+  if (_lpMomId) { cancelAnimationFrame(_lpMomId); _lpMomId = null; }
+}
+function _lpStartMomentum(dir, rail, vx, vy) {
+  _lpStopMomentum();
+  _lpMomRail = rail;
+  const DECAY = 0.92; // 감속 계수 (클수록 더 오래 미끄러짐)
+  let cvx = vx, cvy = vy;
+  function frame() {
+    cvx *= DECAY; cvy *= DECAY;
+    if (Math.abs(cvx) < 0.1 && Math.abs(cvy) < 0.1) { _lpMomId = null; return; }
+    if (dir === 'h') {
+      if (_lpMomRail) _lpMomRail.scrollLeft -= cvx * 16; // 16ms ≈ 1프레임
+    } else {
+      window.scrollBy(0, -cvy * 16);
+    }
+    _lpMomId = requestAnimationFrame(frame);
+  }
+  _lpMomId = requestAnimationFrame(frame);
+}
+
 document.addEventListener('touchstart', e => {
   const card = e.target.closest('.card[data-vid]');
   if (!card || e.target.closest('.select-btn')) return;
   e.preventDefault();
+  _lpStopMomentum(); // 진행 중인 관성 취소
   const t = e.touches[0];
   _lpPos   = { x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY };
-  _lpMoved = false;
-  _lpFired = false;
-  _lpDir   = null;
+  _lpMoved = false; _lpFired = false; _lpDir = null;
+  _lpVx = 0; _lpVy = 0; _lpPrevT = performance.now();
   _lpCard  = card;
-  _lpRail  = card.closest('.rail');  // 가로 스크롤 컨테이너 미리 캐시
+  _lpRail  = card.closest('.rail');
   _lpTimer = setTimeout(() => {
     if (_lpMoved) return;
     if (navigator.vibrate) navigator.vibrate(50);
@@ -1572,7 +1594,7 @@ document.addEventListener('touchmove', e => {
   const ax = Math.abs(t.clientX - _lpPos.x);
   const ay = Math.abs(t.clientY - _lpPos.y);
 
-  // 첫 8px 이상 이동 시 방향 잠금 (이후 방향은 바뀌지 않음)
+  // 첫 8px 이동 시 방향 잠금
   if (!_lpMoved && (ax > 8 || ay > 8)) {
     _lpMoved = true;
     _lpDir   = ay >= ax ? 'v' : 'h';
@@ -1580,12 +1602,17 @@ document.addEventListener('touchmove', e => {
   }
 
   if (_lpMoved) {
+    // 속도 계산 (px/ms) — 지수 이동 평균으로 노이즈 제거
+    const now = performance.now();
+    const dt  = Math.max(now - _lpPrevT, 1);
+    _lpVx = _lpVx * 0.6 + (dx / dt) * 0.4;
+    _lpVy = _lpVy * 0.6 + (dy / dt) * 0.4;
+    _lpPrevT = now;
+
     if (_lpDir === 'v') {
-      // 세로 스크롤: behavior instant으로 smooth 설정 무효화
-      window.scrollBy({ top: -dy, behavior: 'instant' });
+      window.scrollBy(0, -dy);           // 세로: 페이지 스크롤
     } else {
-      // 가로 스크롤: .rail 요소에 직접 적용 (instant)
-      if (_lpRail) _lpRail.scrollBy({ left: -dx, behavior: 'instant' });
+      if (_lpRail) _lpRail.scrollLeft -= dx; // 가로: rail 직접 (항상 즉시 반영)
     }
   }
   _lpPos.lx = t.clientX;
@@ -1594,11 +1621,22 @@ document.addEventListener('touchmove', e => {
 
 document.addEventListener('touchend', e => {
   clearTimeout(_lpTimer);
-  const card = _lpCard;
+  const card  = _lpCard;
+  const dir   = _lpDir;
+  const rail  = _lpRail;
+  const vx    = _lpVx, vy = _lpVy;
   _lpCard = null; _lpPos = null; _lpDir = null; _lpRail = null;
-  if (_lpFired) { _lpFired = false; e.preventDefault(); return; } // 롱프레스 후 합성 click 차단
-  if (!card || _lpMoved) return;
-  // 짧은 탭: touchstart preventDefault로 자동 click 없으므로 수동 처리
+
+  if (_lpFired) { _lpFired = false; e.preventDefault(); return; }
+
+  if (_lpMoved) {
+    // 스크롤 중이었으면 관성 애니메이션 시작
+    _lpStartMomentum(dir, rail, vx, vy);
+    return;
+  }
+
+  // 짧은 탭 처리
+  if (!card) return;
   e.preventDefault();
   if (selectedVideos.size > 0) {
     toggleSelect(card.dataset.vid, null);
