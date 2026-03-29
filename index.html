@@ -277,9 +277,51 @@
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; overflow: hidden;
       text-decoration: none; color: inherit;
-      transition: transform .2s, box-shadow .2s;
+      transition: transform .2s, box-shadow .2s, border-color .15s;
+      position: relative;
     }
     .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+    .card.selected { border-color: #e50914; box-shadow: 0 0 0 2px #e50914; transform: translateY(-4px); }
+
+    /* 선택 원형 버튼 */
+    .select-btn {
+      position: absolute; top: 8px; left: 8px; z-index: 4;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.75);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: opacity .15s, background .15s, border-color .15s;
+      opacity: 0;
+    }
+    .card:hover .select-btn { opacity: 1; }
+    .card.selected .select-btn { opacity: 1; background: #e50914; border-color: #e50914; }
+    body.sel-mode .select-btn { opacity: .7; }          /* 선택 모드 시 모든 카드에 표시 */
+    body.sel-mode .card.selected .select-btn { opacity: 1; }
+    .select-check { opacity: 0; transition: opacity .1s; }
+    .card.selected .select-check { opacity: 1; }
+
+    /* 선택 모드 시 카드 클릭이 선택 토글임을 표시 */
+    body.sel-mode .card { cursor: default; }
+
+    /* 재생목록 하단 바 */
+    #playlist-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 3000;
+      background: rgba(18,18,18,.97); border-top: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 24px;
+      transform: translateY(100%); transition: transform .3s ease;
+    }
+    #playlist-bar.visible { transform: translateY(0); }
+    #playlist-count { color: rgba(255,255,255,.75); font-size: 14px; flex-shrink: 0; }
+    .pl-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 18px; border-radius: 6px; cursor: pointer;
+      font-size: 14px; font-weight: 600; border: none; transition: background .15s;
+    }
+    #pl-clear { background: rgba(255,255,255,.1); color: rgba(255,255,255,.8); }
+    #pl-clear:hover { background: rgba(255,255,255,.2); }
+    #pl-play  { background: #e50914; color: #fff; }
+    #pl-play:hover { background: #f40612; }
 
     .card-v { width: var(--v-w); }
     .card-v .thumb { aspect-ratio: 16/9; }
@@ -967,7 +1009,10 @@ function cardHTML(v) {
   const views   = v.views != null ? `👁 ${fmtN(v.views)}` : '';
 
   return `
-<a class="card card-${isShort ? 's' : 'v'}" href="${esc(v.url)}" target="_blank" rel="noopener">
+<a class="card card-${isShort ? 's' : 'v'}" href="${esc(v.url)}" target="_blank" rel="noopener" data-vid="${esc(v.id)}">
+  <div class="select-btn" onclick="toggleSelect('${esc(v.id)}',event)" title="선택">
+    <svg class="select-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg>
+  </div>
   <div class="thumb">
     <img src="${esc(v.thumb)}" alt="${esc(v.title)}" loading="lazy"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
@@ -1370,6 +1415,69 @@ window.addEventListener('scroll', () => {
 
 loadVideos();
 
+// ── 재생목록 선택 기능 ────────────────────────────────────
+const selectedVideos = new Set();
+
+function toggleSelect(videoId, event) {
+  if (event) { event.preventDefault(); event.stopPropagation(); }
+  if (selectedVideos.has(videoId)) {
+    selectedVideos.delete(videoId);
+  } else {
+    selectedVideos.add(videoId);
+  }
+  // 해당 video ID를 가진 모든 카드 상태 갱신
+  document.querySelectorAll(`.card[data-vid="${videoId}"]`).forEach(c => {
+    c.classList.toggle('selected', selectedVideos.has(videoId));
+  });
+  _updatePlaylistBar();
+}
+
+function _updatePlaylistBar() {
+  const n = selectedVideos.size;
+  document.getElementById('playlist-count').textContent = `${n}개 선택됨`;
+  document.getElementById('playlist-bar').classList.toggle('visible', n > 0);
+  document.body.classList.toggle('sel-mode', n > 0);
+}
+
+function clearSelection() {
+  selectedVideos.clear();
+  document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+  _updatePlaylistBar();
+}
+
+function playAsPlaylist() {
+  if (!selectedVideos.size) return;
+  const ids = [...selectedVideos].join(',');
+  window.open(`https://www.youtube.com/watch_videos?video_ids=${ids}`, '_blank');
+}
+
+// 선택 모드 활성 시 카드 클릭 → 선택 토글 (YouTube 이동 막음)
+document.addEventListener('click', e => {
+  if (!selectedVideos.size) return;
+  const card = e.target.closest('.card[data-vid]');
+  if (!card) return;
+  if (e.target.closest('.select-btn')) return; // select-btn은 자체 처리
+  e.preventDefault();
+  toggleSelect(card.dataset.vid, e);
+}, true);
+
+// ── 모바일 롱프레스 선택 ──────────────────────────────────
+let _lpTimer = null, _lpMoved = false;
+document.addEventListener('touchstart', e => {
+  const card = e.target.closest('.card[data-vid]');
+  if (!card || e.target.closest('.select-btn')) return;
+  _lpMoved = false;
+  _lpTimer = setTimeout(() => {
+    if (_lpMoved) return;
+    if (navigator.vibrate) navigator.vibrate(50); // 햅틱 피드백
+    toggleSelect(card.dataset.vid, null);
+    _lpTimer = null;
+  }, 500);
+}, { passive: true });
+document.addEventListener('touchmove',  () => { _lpMoved = true; clearTimeout(_lpTimer); }, { passive: true });
+document.addEventListener('touchend',   () => { clearTimeout(_lpTimer); }, { passive: true });
+document.addEventListener('touchcancel',() => { clearTimeout(_lpTimer); }, { passive: true });
+
 // 백그라운드 복귀 시 데이터 갱신 (5분 이상 백그라운드였을 경우)
 // visibilitychange: Android / 데스크탑
 // pagehide / pageshow: iOS Safari / iPadOS PWA (WKWebView) 에서 더 신뢰성 있음
@@ -1385,5 +1493,19 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', _onAppHidden);
 window.addEventListener('pageshow', e => { if (e.persisted) _onAppVisible(); });
 </script>
+<!-- 재생목록 하단 바 -->
+<div id="playlist-bar">
+  <span id="playlist-count">0개 선택됨</span>
+  <div style="display:flex;gap:10px;align-items:center;">
+    <button id="pl-clear" class="pl-btn" onclick="clearSelection()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      선택 해제
+    </button>
+    <button id="pl-play" class="pl-btn" onclick="playAsPlaylist()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
+      YouTube 재생목록으로 보기
+    </button>
+  </div>
+</div>
 </body>
 </html>
