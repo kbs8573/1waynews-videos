@@ -1083,11 +1083,16 @@ function setFilter(el, f) {
     w.style.display = (f === 'all' || w.dataset.type === f) ? '' : 'none';
   });
 
-  // Hide date sections that have no visible rails
+  // Hide date sections that have no visible rails + 카운트 업데이트
   document.querySelectorAll('.t-section').forEach(sec => {
-    const hasVisible = [...sec.querySelectorAll('.rail-wrap')]
-      .some(w => w.style.display !== 'none');
-    sec.style.display = hasVisible ? '' : 'none';
+    const visibleRails = [...sec.querySelectorAll('.rail-wrap')]
+      .filter(w => w.style.display !== 'none');
+    sec.style.display = visibleRails.length ? '' : 'none';
+
+    // 표시 중인 rail의 카드 수만 합산해 갱신
+    const cnt = visibleRails.reduce((sum, w) => sum + w.querySelectorAll('.card[data-vid]').length, 0);
+    const cntEl = sec.querySelector('.t-cnt');
+    if (cntEl) cntEl.textContent = `${cnt}개`;
   });
 
   // 스크롤 위치 유지 (필터 클릭 시 현재 위치에서 필터링)
@@ -1493,7 +1498,12 @@ function _updatePlaylistBar() {
 function selectAllInSection(secId) {
   const sec = document.getElementById(secId);
   if (!sec) return;
-  const vids = [...new Set([...sec.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))];
+  // 현재 필터로 표시 중인 rail의 카드만 대상
+  const vids = [...new Set(
+    [...sec.querySelectorAll('.rail-wrap')]
+      .filter(w => w.style.display !== 'none')
+      .flatMap(w => [...w.querySelectorAll('.card[data-vid]')].map(c => c.dataset.vid))
+  )];
   if (!vids.length) return;
   const allSelected = vids.every(vid => selectedVideos.has(vid));
   if (allSelected) {
