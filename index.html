@@ -1558,15 +1558,16 @@ function _updatePlaylistBar() {
   const secCnt = document.getElementById('pl-sec-cnt');
   if (secCnt) {
     if (n > 0) {
-      const items = [];
-      document.querySelectorAll('.t-section').forEach(sec => {
-        const cnt = [...sec.querySelectorAll('.card[data-vid]')]
-          .filter(c => selectedVideos.has(c.dataset.vid)).length;
-        if (!cnt) return;
-        const cls = [...sec.classList].find(c => c.startsWith('ts-')) || '';
-        const label = sec.querySelector('.t-name')?.textContent || '';
-        items.push(`<span class="pl-sec-item ${cls}">● ${label} ${cnt}</span>`);
+      const counts = { live: 0, video: 0, short: 0 };
+      document.querySelectorAll('.card[data-vid]').forEach(c => {
+        if (!selectedVideos.has(c.dataset.vid)) return;
+        const type = c.closest('.rail-wrap')?.dataset.type;
+        if (type in counts) counts[type]++;
       });
+      const items = [];
+      if (counts.live)  items.push(`<span class="pl-sec-item" style="color:#f87171">🔴 ${counts.live}</span>`);
+      if (counts.video) items.push(`<span class="pl-sec-item" style="color:#60a5fa">▶ ${counts.video}</span>`);
+      if (counts.short) items.push(`<span class="pl-sec-item" style="color:#fb923c">⚡ ${counts.short}</span>`);
       secCnt.innerHTML = items.join('<span class="pl-sep"> · </span>');
     } else {
       secCnt.innerHTML = '';
