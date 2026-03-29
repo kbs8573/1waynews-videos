@@ -1542,6 +1542,8 @@ document.addEventListener('click', e => {
 //   · 가로 이동 우세 → .rail.scrollLeft (카드 가로 스크롤)
 // 짧은 탭도 자동 click이 발생하지 않으므로 touchend에서 수동 처리.
 let _lpTimer = null, _lpMoved = false, _lpFired = false, _lpCard = null, _lpPos = null;
+let _lpDir = null; // 스크롤 방향 잠금: 'v'(세로) | 'h'(가로) — 첫 이동 시 결정 후 유지
+let _lpRail = null; // 가로 스크롤 대상 .rail 요소 (캐시)
 document.addEventListener('touchstart', e => {
   const card = e.target.closest('.card[data-vid]');
   if (!card || e.target.closest('.select-btn')) return;
@@ -1550,7 +1552,9 @@ document.addEventListener('touchstart', e => {
   _lpPos   = { x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY };
   _lpMoved = false;
   _lpFired = false;
+  _lpDir   = null;
   _lpCard  = card;
+  _lpRail  = card.closest('.rail');  // 가로 스크롤 컨테이너 미리 캐시
   _lpTimer = setTimeout(() => {
     if (_lpMoved) return;
     if (navigator.vibrate) navigator.vibrate(50);
@@ -1567,13 +1571,21 @@ document.addEventListener('touchmove', e => {
   const dy = t.clientY - _lpPos.ly;
   const ax = Math.abs(t.clientX - _lpPos.x);
   const ay = Math.abs(t.clientY - _lpPos.y);
-  if (!_lpMoved && (ax > 8 || ay > 8)) { _lpMoved = true; clearTimeout(_lpTimer); }
+
+  // 첫 8px 이상 이동 시 방향 잠금 (이후 방향은 바뀌지 않음)
+  if (!_lpMoved && (ax > 8 || ay > 8)) {
+    _lpMoved = true;
+    _lpDir   = ay >= ax ? 'v' : 'h';
+    clearTimeout(_lpTimer);
+  }
+
   if (_lpMoved) {
-    if (ay >= ax) {
-      window.scrollBy(0, -dy);                              // 세로 스크롤
+    if (_lpDir === 'v') {
+      // 세로 스크롤: behavior instant으로 smooth 설정 무효화
+      window.scrollBy({ top: -dy, behavior: 'instant' });
     } else {
-      const rail = _lpCard?.closest('.rail');
-      if (rail) rail.scrollLeft -= dx;                      // 가로 스크롤
+      // 가로 스크롤: .rail 요소에 직접 적용 (instant)
+      if (_lpRail) _lpRail.scrollBy({ left: -dx, behavior: 'instant' });
     }
   }
   _lpPos.lx = t.clientX;
@@ -1583,7 +1595,7 @@ document.addEventListener('touchmove', e => {
 document.addEventListener('touchend', e => {
   clearTimeout(_lpTimer);
   const card = _lpCard;
-  _lpCard = null; _lpPos = null;
+  _lpCard = null; _lpPos = null; _lpDir = null; _lpRail = null;
   if (_lpFired) { _lpFired = false; e.preventDefault(); return; } // 롱프레스 후 합성 click 차단
   if (!card || _lpMoved) return;
   // 짧은 탭: touchstart preventDefault로 자동 click 없으므로 수동 처리
@@ -1598,7 +1610,7 @@ document.addEventListener('touchend', e => {
 
 document.addEventListener('touchcancel', () => {
   clearTimeout(_lpTimer);
-  _lpFired = false; _lpCard = null; _lpPos = null;
+  _lpFired = false; _lpCard = null; _lpPos = null; _lpDir = null; _lpRail = null;
 }, { passive: true });
 // Android Chrome 컨텍스트 메뉴(오래 누르기 팝업) 방지
 document.addEventListener('contextmenu', e => {
