@@ -282,6 +282,8 @@
       -webkit-touch-callout: none; /* iOS Safari 링크 미리보기 팝업 방지 */
       -webkit-user-select: none;
       user-select: none;
+      -webkit-tap-highlight-color: transparent; /* iOS 탭 하이라이트 제거 */
+      -webkit-user-drag: none; /* 링크 드래그 미리보기 방지 */
     }
     .card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
     .card.selected { border-color: #e50914; box-shadow: 0 0 0 2px #e50914; transform: translateY(-4px); }
@@ -1487,21 +1489,26 @@ document.addEventListener('click', e => {
 }, true);
 
 // ── 모바일 롱프레스 선택 ──────────────────────────────────
-let _lpTimer = null, _lpMoved = false;
+let _lpTimer = null, _lpMoved = false, _lpFired = false;
 document.addEventListener('touchstart', e => {
   const card = e.target.closest('.card[data-vid]');
   if (!card || e.target.closest('.select-btn')) return;
   _lpMoved = false;
+  _lpFired = false;
   _lpTimer = setTimeout(() => {
     if (_lpMoved) return;
     if (navigator.vibrate) navigator.vibrate(50); // 햅틱 피드백
+    _lpFired = true;
     toggleSelect(card.dataset.vid, null);
     _lpTimer = null;
   }, 500);
 }, { passive: true });
 document.addEventListener('touchmove',  () => { _lpMoved = true; clearTimeout(_lpTimer); }, { passive: true });
-document.addEventListener('touchend',   () => { clearTimeout(_lpTimer); }, { passive: true });
-document.addEventListener('touchcancel',() => { clearTimeout(_lpTimer); }, { passive: true });
+document.addEventListener('touchend', e => {
+  clearTimeout(_lpTimer);
+  if (_lpFired) { _lpFired = false; e.preventDefault(); } // iOS Safari 합성 click 방지
+}, { passive: false });
+document.addEventListener('touchcancel',() => { clearTimeout(_lpTimer); _lpFired = false; }, { passive: true });
 // Android Chrome 컨텍스트 메뉴(오래 누르기 팝업) 방지
 document.addEventListener('contextmenu', e => {
   if (e.target.closest('.card[data-vid]')) e.preventDefault();
