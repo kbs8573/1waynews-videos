@@ -236,6 +236,7 @@
     .ts-3 .t-badge { background: rgba(251,146,60,.12);  color: var(--c3); border: 1px solid rgba(251,146,60,.25); }
     .ts-4 .t-badge { background: rgba(161,161,170,.12); color: var(--c4); border: 1px solid rgba(161,161,170,.25); }
     .t-cnt { font-size: 13px; color: var(--muted); }
+    .t-type-cnt { font-size: 12px; color: rgba(255,255,255,.45); white-space: nowrap; letter-spacing: .2px; display: none; }
     .t-type-cnt { font-size: 11px; color: rgba(255,255,255,.35); white-space: nowrap; display: none; }
     .t-head-right { display: flex; align-items: center; gap: 10px; }
     .t-selall {
@@ -262,7 +263,6 @@
     .rl-live  { background: rgba(220,38,38,.25);  color: #f87171; }
     .rl-video { background: rgba(59,130,246,.2);  color: #60a5fa; }
     .rl-short { background: rgba(251,146,60,.2);  color: #fb923c; }
-    .rl-cnt { font-size: 11px; color: rgba(255,255,255,.4); margin-left: 4px; display: none; }
 
     /* ── Rail (horizontal scroll) ── */
     .rail {
@@ -926,6 +926,7 @@ function render(videos) {
       <div class="t-head-left">
         <span class="t-name">${cat.label}</span>
         <span class="t-badge">${cat.badge}</span>
+        <span class="t-type-cnt"></span>
       </div>
       <div class="t-head-right">
         <span class="t-cnt">${totals[i]}개</span>
@@ -977,7 +978,7 @@ function buildRail(items, type, catIdx, isLazy) {
   // Label row
   const labelDiv = document.createElement('div');
   labelDiv.className = 'rail-label';
-  labelDiv.innerHTML = `<span class="rl-badge ${badge}">${lbl}</span><span class="rl-cnt"></span>`;
+  labelDiv.innerHTML = `<span class="rl-badge ${badge}">${lbl}</span>`;
   wrap.appendChild(labelDiv);
 
   // Arrow Left
@@ -1143,18 +1144,23 @@ function setFilter(el, f) {
     const cntEl = sec.querySelector('.t-cnt');
     if (cntEl) cntEl.textContent = `${cnt}개`;
 
-    // 각 rail-wrap의 카운트 표시 (전체 필터 시에만)
-    allRails.forEach(w => {
-      const cntEl = w.querySelector('.rl-cnt');
-      if (!cntEl) return;
+    // 섹션 헤더 카테고리별 카운트 (전체 필터 시에만)
+    const typeEl = sec.querySelector('.t-type-cnt');
+    if (typeEl) {
       if (f === 'all') {
-        const n = w.querySelectorAll('.card[data-vid]').length;
-        cntEl.textContent = `${n}개`;
-        cntEl.style.display = 'inline';
+        const liveN  = sec.querySelector('.rail-wrap[data-type="live"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
+        const videoN = sec.querySelector('.rail-wrap[data-type="video"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
+        const shortN = sec.querySelector('.rail-wrap[data-type="short"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
+        const parts = [];
+        if (liveN)  parts.push(`🔴 ${liveN}`);
+        if (videoN) parts.push(`▶ ${videoN}`);
+        if (shortN) parts.push(`⚡ ${shortN}`);
+        typeEl.textContent = parts.join('  ·  ');
+        typeEl.style.display = parts.length > 1 ? 'inline' : 'none';
       } else {
-        cntEl.style.display = 'none';
+        typeEl.style.display = 'none';
       }
-    });
+    }
   });
 
   // 스크롤 위치 유지 (필터 클릭 시 현재 위치에서 필터링)
