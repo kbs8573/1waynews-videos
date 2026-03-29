@@ -302,6 +302,18 @@
     /* 선택 모드 시 카드 클릭이 선택 토글임을 표시 */
     body.sel-mode .card { cursor: default; }
 
+    /* 터치 기기: hover 억제 + 선택 버튼은 sel-mode 때만 표시 */
+    @media (hover: none) {
+      .card:hover { transform: none; box-shadow: none; }
+      .card.selected { transform: none; }
+      .card:hover .thumb img { transform: none; }
+      .card:hover .play-wrap { background: none; }
+      .card:hover .play-btn { opacity: 0; transform: scale(.8); }
+      .select-btn { display: none; }
+      body.sel-mode .select-btn { display: flex; opacity: .7; }
+      body.sel-mode .card.selected .select-btn { opacity: 1; }
+    }
+
     /* 재생목록 하단 바 */
     #playlist-bar {
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 3000;
