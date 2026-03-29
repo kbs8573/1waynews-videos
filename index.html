@@ -191,7 +191,7 @@
     }
     .chip .cnt { background: rgba(255,255,255,.18); border-radius: 100px; padding: 1px 6px; font-size: 10px; }
     .chip.active { border-color: currentColor; }
-    .c-all   { background: rgba(229,9,20,.15);   color: #e50914; }
+    .c-all   { background: rgba(255,255,255,.1);  color: #ffffff; }
     .c-live  { background: rgba(220,38,38,.15);  color: #f87171; }
     .c-video { background: rgba(96,165,250,.15); color: #60a5fa; }
     .c-short { background: rgba(251,146,60,.15); color: #fb923c; }
@@ -236,6 +236,7 @@
     .ts-3 .t-badge { background: rgba(251,146,60,.12);  color: var(--c3); border: 1px solid rgba(251,146,60,.25); }
     .ts-4 .t-badge { background: rgba(161,161,170,.12); color: var(--c4); border: 1px solid rgba(161,161,170,.25); }
     .t-cnt { font-size: 13px; color: var(--muted); }
+    .t-type-cnt { font-size: 11px; color: rgba(255,255,255,.35); white-space: nowrap; display: none; }
     .t-head-right { display: flex; align-items: center; gap: 10px; }
     .t-selall {
       display: none;
@@ -384,15 +385,11 @@
     #pl-clear:hover { background: rgba(255,255,255,.2); }
     #pl-play  { background: #e50914; color: #fff; }
     #pl-play:hover { background: #f40612; }
-    .pl-txt-full  { }
-    .pl-txt-short { display: none; }
     @media (max-width: 640px) {
       #playlist-bar { padding: 12px 16px; gap: 8px; }
       #pl-count-num { font-size: 24px; }
       #pl-count-label { font-size: 9px; }
       .pl-btn { padding: 8px 14px; font-size: 13px; gap: 6px; }
-      .pl-txt-full  { display: none; }
-      .pl-txt-short { display: inline; }
     }
 
     .card-v { width: var(--v-w); }
@@ -773,6 +770,7 @@ function getBucket(pub) {
 
 // ── Load ─────────────────────────────────────────────────
 async function loadVideos() {
+  clearSelection();
   show('loading', true);
   show('content', false);
   show('err-msg', false);
@@ -915,6 +913,7 @@ function render(videos) {
         <span class="t-badge">${cat.badge}</span>
       </div>
       <div class="t-head-right">
+        <span class="t-type-cnt"></span>
         <span class="t-cnt">${totals[i]}개</span>
         <button class="t-selall" onclick="selectAllInSection('sec-${i}')">전체선택</button>
       </div>`;
@@ -945,6 +944,8 @@ function render(videos) {
   });
 
   show('content', true);
+  // 초기 로드 시 전체 필터 상태로 타입별 카운트 표시
+  setFilter(document.querySelector('.chip.c-all'), 'all');
 }
 
 // ── Build Rail ────────────────────────────────────────────
@@ -1118,14 +1119,32 @@ function setFilter(el, f) {
 
   // Hide date sections that have no visible rails + 카운트 업데이트
   document.querySelectorAll('.t-section').forEach(sec => {
-    const visibleRails = [...sec.querySelectorAll('.rail-wrap')]
-      .filter(w => w.style.display !== 'none');
-    sec.style.display = visibleRails.length ? '' : 'none';
+    const allRails     = [...sec.querySelectorAll('.rail-wrap')];
+    const visibleRails = allRails.filter(w => w.style.display !== 'none');
+    sec.style.display  = visibleRails.length ? '' : 'none';
 
-    // 표시 중인 rail의 카드 수만 합산해 갱신
+    // 총 카운트
     const cnt = visibleRails.reduce((sum, w) => sum + w.querySelectorAll('.card[data-vid]').length, 0);
     const cntEl = sec.querySelector('.t-cnt');
     if (cntEl) cntEl.textContent = `${cnt}개`;
+
+    // 전체 필터일 때만 타입별 카운트 표시
+    const typeEl = sec.querySelector('.t-type-cnt');
+    if (typeEl) {
+      if (f === 'all') {
+        const parts = [];
+        const liveN  = sec.querySelector('.rail-wrap[data-type="live"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
+        const shortN = sec.querySelector('.rail-wrap[data-type="short"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
+        const videoN = sec.querySelector('.rail-wrap[data-type="video"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
+        if (liveN)  parts.push(`🔴 ${liveN}`);
+        if (shortN) parts.push(`⚡ ${shortN}`);
+        if (videoN) parts.push(`▶ ${videoN}`);
+        typeEl.textContent = parts.join('  ');
+        typeEl.style.display = parts.length > 1 ? '' : 'none';
+      } else {
+        typeEl.style.display = 'none';
+      }
+    }
   });
 
   // 스크롤 위치 유지 (필터 클릭 시 현재 위치에서 필터링)
@@ -1518,9 +1537,11 @@ function _updatePlaylistBar() {
   if (numEl) {
     numEl.textContent = n;
     numEl.classList.remove('pop');
-    void numEl.offsetWidth; // reflow → 애니메이션 재시작
+    void numEl.offsetWidth;
     numEl.classList.add('pop');
   }
+  const playTxt = document.getElementById('pl-play-txt');
+  if (playTxt) playTxt.textContent = `${n}개 영상 재생하기`;
   document.getElementById('playlist-bar').classList.toggle('visible', n > 0);
   document.body.classList.toggle('sel-mode', n > 0);
   // 각 섹션의 전체선택/전체해제 버튼 텍스트 동기화
@@ -1670,13 +1691,11 @@ window.addEventListener('pageshow', e => { if (e.persisted) _onAppVisible(); });
   <div style="display:flex;gap:10px;align-items:center;">
     <button id="pl-clear" class="pl-btn" onclick="clearSelection()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      <span class="pl-txt-full">선택 해제</span>
-      <span class="pl-txt-short">선택해제</span>
+      선택해제
     </button>
     <button id="pl-play" class="pl-btn" onclick="playAsPlaylist()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-      <span class="pl-txt-full">YouTube 재생목록으로 보기</span>
-      <span class="pl-txt-short">재생목록 보기</span>
+      <span id="pl-play-txt">0개 영상 재생하기</span>
     </button>
   </div>
 </div>
