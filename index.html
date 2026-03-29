@@ -925,7 +925,6 @@ function render(videos) {
     head.innerHTML = `
       <div class="t-head-left">
         <span class="t-name">${cat.label}</span>
-        <span class="t-badge">${cat.badge}</span>
         <span class="t-type-cnt"></span>
       </div>
       <div class="t-head-right">
@@ -1146,8 +1145,8 @@ function setFilter(el, f) {
       const shortN = sec.querySelector('.rail-wrap[data-type="short"]')?.querySelectorAll('.card[data-vid]').length ?? 0;
       const parts = [];
       if (f === 'all' || f === 'live')  { if (liveN)  parts.push(`<span style="color:#f87171">🔴 ${liveN}</span>`); }
-      if (f === 'all' || f === 'video') { if (videoN) parts.push(`<span style="color:#60a5fa">▶ ${videoN}</span>`); }
       if (f === 'all' || f === 'short') { if (shortN) parts.push(`<span style="color:#fb923c">⚡ ${shortN}</span>`); }
+      if (f === 'all' || f === 'video') { if (videoN) parts.push(`<span style="color:#60a5fa">▶ ${videoN}</span>`); }
       const totalN = liveN + videoN + shortN;
       const sep = `<span style="color:rgba(255,255,255,.2)"> · </span>`;
       const totalHtml = `<span style="color:rgba(255,255,255,.4)">📺 ${totalN}</span>`;
